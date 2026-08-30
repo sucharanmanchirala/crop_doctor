@@ -1,5 +1,5 @@
-streamlit
-tensorflow
-numpy
+streamlit==1.48.1
+tensorflow==2.20.0
+numpy==2.0.2
 pillow
 streamlit-option-menu

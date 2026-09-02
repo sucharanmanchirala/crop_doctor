@@ -1,0 +1,32 @@
+[
+    {
+        "id": "3990e886",
+        "farmer_name": "mark Zuckerberg",
+        "crop_name": "Cotton",
+        "field_label": "field 1",
+        "sowing_date": "2026-08-31",
+        "monitoring_time": "18:20",
+        "registered_on": "2026-08-31 18:18",
+        "status": "active"
+    },
+    {
+        "id": "1f1d917d",
+        "farmer_name": "narendra modi",
+        "crop_name": "Banana",
+        "field_label": "field 2",
+        "sowing_date": "2026-08-31",
+        "monitoring_time": "18:33",
+        "registered_on": "2026-08-31 18:34",
+        "status": "active"
+    },
+    {
+        "id": "c3a01001",
+        "farmer_name": "manohar yadav",
+        "crop_name": "Paddy",
+        "field_label": "field 1",
+        "sowing_date": "2026-08-01",
+        "monitoring_time": "07:00",
+        "registered_on": "2026-09-01 21:01",
+        "status": "active"
+    }
+]

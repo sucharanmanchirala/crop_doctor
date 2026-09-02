@@ -45,12 +45,7 @@ confidence = float(predictions[0][predicted_index]) * 100
 predicted_class = class_names[predicted_index]
 
 # Display result
-print("\n===================================")
-print("🌱 CROP DOCTOR RESULT")
-print("===================================")
-print(f"Prediction : {predicted_class}")
-print(f"Confidence : {confidence:.2f}%")
-print("===================================")
+
 
 info = DISEASE_INFO.get(predicted_class)
 

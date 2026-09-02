@@ -1,0 +1,71 @@
+[
+    {
+        "id": "19779d87_1",
+        "crop_id": "19779d87",
+        "day": 1,
+        "date": "2026-08-30 18:51",
+        "image_path": "crop_raksha_images\\19779d87_day_1.jpg",
+        "status": "observed",
+        "observation": "Daily image uploaded."
+    },
+    {
+        "id": "19779d87_2",
+        "crop_id": "19779d87",
+        "day": 2,
+        "date": "2026-08-30 18:57",
+        "image_path": "crop_raksha_images\\19779d87_day_2.jpg",
+        "status": "observed",
+        "observation": "Daily image uploaded."
+    },
+    {
+        "id": "19779d87_3",
+        "crop_id": "19779d87",
+        "day": 3,
+        "date": "2026-08-30 19:00",
+        "image_path": "crop_raksha_images\\19779d87_day_3.jpg",
+        "status": "observed",
+        "observation": "Daily image uploaded."
+    },
+    {
+        "id": "e7605404_1",
+        "crop_id": "e7605404",
+        "day": 1,
+        "date": "2026-08-31 17:45",
+        "image_path": "crop_raksha_images\\e7605404_day_1.jpg",
+        "status": "observed",
+        "observation": "Daily image uploaded."
+    },
+    {
+        "id": "1f1d917d_1",
+        "crop_id": "1f1d917d",
+        "day": 1,
+        "date": "2026-08-31 18:34",
+        "image_path": "crop_raksha_images\\1f1d917d_day_1.jpg",
+        "status": "baseline",
+        "observation": "Baseline observation recorded. AI result: Healthy (100.00%).",
+        "disease": "Healthy",
+        "confidence": 100.0
+    },
+    {
+        "id": "1f1d917d_2",
+        "crop_id": "1f1d917d",
+        "day": 2,
+        "date": "2026-09-01 18:43",
+        "image_path": "crop_raksha_images\\1f1d917d_day_2.jpg",
+        "status": "normal",
+        "observation": "No significant visual change detected. AI result: Healthy (100.00%).",
+        "disease": "Healthy",
+        "confidence": 100.0
+    },
+    {
+        "id": "c3a01001_1",
+        "crop_id": "c3a01001",
+        "day": 1,
+        "date": "2026-09-01 21:05",
+        "image_path": "crop_raksha_images\\c3a01001_day_1.jpg",
+        "status": "baseline",
+        "observation": "Baseline observation recorded. AI result: Healthy (83.16%).",
+        "disease": "Healthy",
+        "confidence": 83.16
+    }
+]

@@ -67,5 +67,27 @@
         "observation": "Baseline observation recorded. AI result: Healthy (83.16%).",
         "disease": "Healthy",
         "confidence": 83.16
+    },
+    {
+        "id": "c3a01001_2",
+        "crop_id": "c3a01001",
+        "day": 2,
+        "date": "2026-09-03 18:25",
+        "image_path": "crop_raksha_images\\c3a01001_day_2.jpg",
+        "status": "minor_change",
+        "observation": "A minor visual change was detected. AI currently predicts Healthy (96.77%). Continue monitoring.",
+        "disease": "Healthy",
+        "confidence": 96.77
+    },
+    {
+        "id": "3990e886_1",
+        "crop_id": "3990e886",
+        "day": 1,
+        "date": "2026-09-03 18:26",
+        "image_path": "crop_raksha_images\\3990e886_day_1.jpg",
+        "status": "baseline",
+        "observation": "Baseline observation recorded. AI result: Healthy (62.37%).",
+        "disease": "Healthy",
+        "confidence": 62.37
     }
 ]

@@ -52,42 +52,32 @@ def get_crop_records(crop_id):
 # =====================================================
 
 def get_next_day(crop_id):
-    """
-    Return the monitoring day based on calendar days
-    since the first Crop Raksha observation.
-
-    First observation:
-        Day 1
-
-    Next calendar day:
-        Day 2
-
-    And so on.
-    """
-
+    """Return the next monitoring day for a crop."""
     records = get_crop_records(crop_id)
-
     if not records:
         return 1
 
-    records = sorted(
-        records,
-        key=lambda x: x["date"]
-    )
+    # Prefer the stored day number. This keeps the sequence stable even
+    # when multiple observations are made on the same calendar day.
+    day_numbers = []
+    for record in records:
+        try:
+            day_numbers.append(int(record.get("day", 0)))
+        except (TypeError, ValueError):
+            pass
 
-    first_date = datetime.strptime(
-        records[0]["date"],
-        "%Y-%m-%d %H:%M"
-    ).date()
+    if day_numbers:
+        return max(day_numbers) + 1
 
-    today = datetime.now().date()
-
-    return (today - first_date).days + 1
-
-
-# =====================================================
-# LATEST RECORD
-# =====================================================
+    # Backward compatibility for legacy records without a day field.
+    try:
+        records = sorted(records, key=lambda x: x.get("date", ""))
+        first_date = datetime.strptime(
+            records[0]["date"], "%Y-%m-%d %H:%M"
+        ).date()
+        return (datetime.now().date() - first_date).days + 1
+    except (KeyError, TypeError, ValueError):
+        return len(records) + 1
 
 def get_latest_record(crop_id):
     """Return the latest monitoring record for a crop."""

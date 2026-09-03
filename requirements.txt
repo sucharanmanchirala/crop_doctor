@@ -3,3 +3,4 @@ tensorflow==2.17.0
 numpy==1.26.4
 pillow
 streamlit-option-menu
+matplotlib

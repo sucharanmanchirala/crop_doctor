@@ -3,7 +3,6 @@ import tensorflow as tf
 import numpy as np
 import json
 import os
-import matplotlib.pyplot as plt
 
 
 
@@ -39,8 +38,8 @@ from crop_raksha_chat import (
     get_change_message
 )
 
-from language import render_language_selector
-from language import t, render_language_selector
+from language import t, render_language_selector, translate_text
+from ivr.ivr_app import render_anjaneya_voice
 
 # =====================================================
 # CONFIG
@@ -223,7 +222,8 @@ def save_history(history):
 def add_record(
     crop,
     disease,
-    confidence
+    confidence,
+    crop_id=None
 ):
 
     history = load_history()
@@ -245,7 +245,9 @@ def add_record(
             round(
                 confidence,
                 2
-            )
+            ),
+
+        "crop_id": crop_id
 
     })
 
@@ -299,123 +301,6 @@ def safe_open_image(uploaded_file):
         st.error(
             f"⚠️ Couldn't read that image file: {e}"
         )
-
-        return None
-
-
-# =====================================================
-# VISUAL DIFFERENCE HEATMAP
-# =====================================================
-
-def create_difference_heatmap(
-    previous_image,
-    current_image
-):
-    """
-    Create a visual heatmap showing where the
-    previous and current crop images differ.
-
-    Brighter / hotter areas indicate larger
-    visual differences.
-    """
-
-    try:
-
-        previous_image = (
-            previous_image
-            .convert("RGB")
-            .resize(IMAGE_SIZE)
-        )
-
-        current_image = (
-            current_image
-            .convert("RGB")
-            .resize(IMAGE_SIZE)
-        )
-
-        previous_array = np.array(
-            previous_image
-        ).astype(
-            np.float32
-        )
-
-        current_array = np.array(
-            current_image
-        ).astype(
-            np.float32
-        )
-
-        # -------------------------------------------------
-        # PIXEL DIFFERENCE
-        # -------------------------------------------------
-
-        pixel_difference = np.mean(
-            np.abs(
-                previous_array -
-                current_array
-            ),
-            axis=2
-        )
-
-        # -------------------------------------------------
-        # NORMALIZE DIFFERENCE
-        # -------------------------------------------------
-
-        max_difference = (
-            pixel_difference.max()
-        )
-
-        if max_difference > 0:
-
-            normalized_difference = (
-                pixel_difference /
-                max_difference
-            )
-
-        else:
-
-            normalized_difference = (
-                np.zeros_like(
-                    pixel_difference
-                )
-            )
-
-        # -------------------------------------------------
-        # CREATE HEATMAP
-        # -------------------------------------------------
-
-        fig, ax = plt.subplots(
-            figsize=(7, 5)
-        )
-
-        heatmap = ax.imshow(
-            normalized_difference,
-            cmap="hot",
-            vmin=0,
-            vmax=1
-        )
-
-        ax.set_title(
-            "Visual Difference Heatmap"
-        )
-
-        ax.axis(
-            "off"
-        )
-
-        fig.colorbar(
-            heatmap,
-            ax=ax,
-            fraction=0.046,
-            pad=0.04,
-            label="Relative Visual Change"
-        )
-
-        fig.tight_layout()
-
-        return fig
-
-    except Exception:
 
         return None
 
@@ -568,12 +453,10 @@ def analyze_crop_image(
 with st.sidebar:
 
     st.markdown(
-        "## 🌱 Crop Doctor"
+        f"## 🌱 {t('app_name')}"
     )
 
-    st.caption(
-        "AI Crop Health Assistant"
-    )
+    st.caption(t("ai_assistant"))
 
     st.divider()
 
@@ -586,6 +469,7 @@ with st.sidebar:
         "Dashboard",
         "Crop Registration",
         "Crop Raksha",
+        "Anjaneya Voice",
         "Diagnose",
         "Monitoring",
         "Disease Library",
@@ -596,6 +480,7 @@ with st.sidebar:
         t("dashboard"),
         t("crop_registration"),
         t("crop_raksha"),
+        t("anjaneya_voice"),
         t("diagnose"),
         t("monitoring"),
         t("disease_library"),
@@ -604,7 +489,7 @@ with st.sidebar:
 
     selected_page = option_menu(
 
-        "Navigation",
+        translate_text('Navigation'),
 
         page_labels,
 
@@ -612,6 +497,7 @@ with st.sidebar:
             "house",
             "clipboard-plus",
             "shield-check",
+            "telephone",
             "camera",
             "graph-up",
             "book",
@@ -631,9 +517,7 @@ with st.sidebar:
 
     st.divider()
 
-    st.caption(
-        "AI-assisted crop health monitoring"
-    )
+    st.caption(translate_text("AI-assisted crop health monitoring"))
 
 
 # =====================================================
@@ -687,35 +571,35 @@ if page == "Dashboard":
     with c1:
 
         st.metric(
-            "🔬 Total Scans",
+            t("total_scans"),
             total_scans
         )
 
     with c2:
 
         st.metric(
-            "🌱 Healthy",
+            translate_text('🌱 Healthy'),
             healthy
         )
 
     with c3:
 
         st.metric(
-            "🦠 Issues Detected",
+            t("issues_detected"),
             issues
         )
 
     with c4:
 
         st.metric(
-            "🌾 Crops Monitored",
+            t("crops_monitored"),
             crops_count
         )
 
     st.divider()
 
     st.subheader(
-        "🚀 Crop Doctor Features"
+        translate_text('🚀 Crop Doctor Features')
     )
 
     c1, c2, c3 = st.columns(3)
@@ -750,7 +634,7 @@ if page == "Dashboard":
     st.divider()
 
     st.subheader(
-        "🌾 Supported Crops"
+        t("supported_crops")
     )
 
     supported_crops = sorted(
@@ -796,12 +680,12 @@ elif page == "Crop Registration":
     ):
 
         farmer_name = st.text_input(
-            "👨‍🌾 Farmer Name"
+            translate_text("👨‍🌾 Farmer Name")
         )
 
         crop_name = st.selectbox(
 
-            "🌾 Crop",
+            t("crop"),
 
             sorted(
                 set(
@@ -812,20 +696,20 @@ elif page == "Crop Registration":
         )
 
         field_label = st.text_input(
-            "📍 Field Name",
+            translate_text("📍 Field Name"),
             placeholder="Example: Field 1"
         )
 
         sowing_date = st.date_input(
-            "📅 Date of Sowing"
+            t("sowing_date")
         )
 
         monitoring_time = st.time_input(
-            "⏰ Daily Crop Raksha Monitoring Time"
+            translate_text("⏰ Daily Crop Raksha Monitoring Time")
         )
 
         submitted = st.form_submit_button(
-            "🌱 Register Crop"
+            translate_text("🌱 Register Crop")
         )
 
         if submitted:
@@ -833,13 +717,13 @@ elif page == "Crop Registration":
             if not farmer_name.strip():
 
                 st.error(
-                    "Please enter the farmer name."
+                    translate_text("Please enter the farmer name.")
                 )
 
             elif sowing_date > date.today():
 
                 st.error(
-                    "The date of sowing cannot be in the future."
+                    translate_text("The date of sowing cannot be in the future.")
                 )
 
             else:
@@ -861,7 +745,7 @@ elif page == "Crop Registration":
                 )
 
                 st.success(
-                    "✅ Crop registered successfully!"
+                    translate_text("✅ Crop registered successfully!")
                 )
 
                 st.write(
@@ -894,7 +778,7 @@ elif page == "Crop Registration":
     st.divider()
 
     st.subheader(
-        "🌾 My Registered Crops"
+        translate_text("🌾 My Registered Crops")
     )
 
     crops = load_crops()
@@ -902,7 +786,7 @@ elif page == "Crop Registration":
     if not crops:
 
         st.info(
-            "No crops registered yet."
+            translate_text("No crops registered yet.")
         )
 
     else:
@@ -990,7 +874,7 @@ elif page == "Crop Raksha":
     )
 
     st.write(
-        "Your AI crop companion for continuous daily monitoring."
+        translate_text('Your AI crop companion for continuous daily monitoring.')
     )
 
     st.divider()
@@ -1004,11 +888,11 @@ elif page == "Crop Raksha":
     if not crops:
 
         st.warning(
-            "🌱 No crops registered yet."
+            translate_text('🌱 No crops registered yet.')
         )
 
         st.info(
-            "Go to Crop Registration and register your crop first."
+            translate_text('Go to Crop Registration and register your crop first.')
         )
 
     else:
@@ -1023,7 +907,7 @@ elif page == "Crop Raksha":
         if not active_crops:
 
             st.warning(
-                "No active crops found."
+                translate_text('No active crops found.')
             )
 
         else:
@@ -1040,7 +924,7 @@ elif page == "Crop Raksha":
             }
 
             selected_crop_name = st.selectbox(
-                "🌾 Select your crop",
+                translate_text('🌾 Select your crop'),
                 list(
                     crop_options.keys()
                 )
@@ -1116,7 +1000,7 @@ elif page == "Crop Raksha":
             # =================================================
 
             st.subheader(
-                "🌱 Crop Profile"
+                translate_text('🌱 Crop Profile')
             )
 
             c1, c2, c3, c4 = st.columns(4)
@@ -1124,28 +1008,28 @@ elif page == "Crop Raksha":
             with c1:
 
                 st.metric(
-                    "🌾 Crop",
+                    t("crop"),
                     selected_crop["crop_name"]
                 )
 
             with c2:
 
                 st.metric(
-                    "📅 Sowing Date",
+                    t("sowing_date"),
                     selected_crop["sowing_date"]
                 )
 
             with c3:
 
                 st.metric(
-                    "🌿 Crop Age",
+                    t("crop_age"),
                     f"{crop_age} days"
                 )
 
             with c4:
 
                 st.metric(
-                    "📊 Observations",
+                    t("observations"),
                     len(records)
                 )
 
@@ -1188,7 +1072,7 @@ elif page == "Crop Raksha":
                 )
 
                 st.write(
-                    "Let's record today's condition."
+                    translate_text("Let's record today's condition.")
                 )
 
                 uploaded_image = st.file_uploader(
@@ -1302,6 +1186,7 @@ elif page == "Crop Raksha":
                             )
 
                             previous_image = None
+                            heatmap = None
 
                             if previous_record:
 
@@ -1346,24 +1231,6 @@ elif page == "Crop Raksha":
                                     change_level = (
                                         "baseline"
                                     )
-
-                            # =================================
-                            # CREATE VISUAL HEATMAP
-                            # =================================
-
-                            difference_heatmap = None
-
-                            if (
-                                previous_image
-                                is not None
-                            ):
-
-                                difference_heatmap = (
-                                    create_difference_heatmap(
-                                        previous_image,
-                                        image
-                                    )
-                                )
 
                             # =================================
                             # HEALTH STATUS
@@ -1507,7 +1374,7 @@ elif page == "Crop Raksha":
                             ):
 
                                 st.subheader(
-                                    "🔥 Visual Change Heatmap"
+                                    translate_text("🔥 Visual Change Heatmap")
                                 )
 
                                 st.caption(
@@ -1518,7 +1385,7 @@ elif page == "Crop Raksha":
 
                                 st.image(
                                     heatmap,
-                                    caption="Crop Raksha visual difference map",
+                                    caption=translate_text("Hotter/brighter areas show where the current image differs most from the previous observation."),
                                     width="stretch"
                                 )
 
@@ -1529,7 +1396,7 @@ elif page == "Crop Raksha":
                                     )
 
                             st.subheader(
-                                "🤖 Crop Raksha AI Assessment"
+                                translate_text('🤖 Crop Raksha AI Assessment')
                             )
 
                             if ai_result:
@@ -1550,7 +1417,7 @@ elif page == "Crop Raksha":
                                 with r2:
 
                                     st.metric(
-                                        "🔬 AI Result",
+                                        translate_text("🔬 AI Result"),
                                         ai_result[
                                             "disease"
                                         ]
@@ -1559,7 +1426,7 @@ elif page == "Crop Raksha":
                                 with r3:
 
                                     st.metric(
-                                        "🎯 Confidence",
+                                        t("confidence"),
                                         f"{ai_result['confidence']:.2f}%"
                                     )
 
@@ -1570,7 +1437,7 @@ elif page == "Crop Raksha":
                             st.divider()
 
                             st.subheader(
-                                "🔥 Visual Change Analysis"
+                                translate_text("🔥 Visual Change Analysis")
                             )
 
                             if (
@@ -1601,7 +1468,7 @@ elif page == "Crop Raksha":
                                     if difference is not None:
 
                                         st.metric(
-                                            "📊 Visual Difference",
+                                            translate_text('📊 Visual Difference'),
                                             f"{difference:.2f}%"
                                         )
 
@@ -1613,7 +1480,7 @@ elif page == "Crop Raksha":
                                     ):
 
                                         st.success(
-                                            "🟢 Normal"
+                                            translate_text('🟢 Normal')
                                         )
 
                                     elif (
@@ -1622,7 +1489,7 @@ elif page == "Crop Raksha":
                                     ):
 
                                         st.warning(
-                                            "🟠 Minor Change"
+                                            translate_text('🟠 Minor Change')
                                         )
 
                                     elif (
@@ -1631,41 +1498,8 @@ elif page == "Crop Raksha":
                                     ):
 
                                         st.error(
-                                            "🔴 Significant Change"
+                                            translate_text('🔴 Significant Change')
                                         )
-
-                                # ---------------------------------
-                                # HEATMAP
-                                # ---------------------------------
-
-                                if difference_heatmap is not None:
-
-                                    st.markdown(
-                                        "### 🔥 Visual Difference Heatmap"
-                                    )
-
-                                    st.caption(
-                                        "Hotter/brighter areas show "
-                                        "where the current image differs "
-                                        "most from the previous observation."
-                                    )
-
-                                    st.pyplot(
-                                        difference_heatmap,
-                                        clear_figure=True
-                                    )
-
-                                    plt.close(
-                                        difference_heatmap
-                                    )
-
-                                else:
-
-                                    st.info(
-                                        "The previous observation image "
-                                        "could not be loaded, so the "
-                                        "visual heatmap could not be created."
-                                    )
 
                             # =================================
                             # CROP RAKSHA COMPANION MESSAGES
@@ -1674,7 +1508,7 @@ elif page == "Crop Raksha":
                             st.divider()
 
                             st.subheader(
-                                "🤖 Crop Raksha Assessment"
+                                translate_text('🤖 Crop Raksha Assessment')
                             )
 
                             st.markdown(
@@ -1919,6 +1753,15 @@ elif page == "Crop Raksha":
 # DIAGNOSIS
 # =====================================================
 
+elif page == "Anjaneya Voice":
+
+    render_anjaneya_voice()
+
+
+# =====================================================
+# DIAGNOSIS
+# =====================================================
+
 elif page == "Diagnose":
 
     st.title(
@@ -1928,6 +1771,23 @@ elif page == "Diagnose":
     st.write(
         t("upload_leaf")
     )
+
+    registered_crops = load_crops()
+
+    diagnosis_crop_labels = {
+        translate_text("— General diagnosis (not linked to a crop) —"): None
+    }
+
+    for registered_crop in registered_crops:
+        diagnosis_crop_labels[display_name(registered_crop)] = registered_crop["id"]
+
+    selected_diagnosis_crop = st.selectbox(
+        translate_text("🌾 Link diagnosis to a registered crop"),
+        list(diagnosis_crop_labels.keys()),
+        key="diagnosis_crop_link"
+    )
+
+    diagnosis_crop_id = diagnosis_crop_labels[selected_diagnosis_crop]
 
     uploaded_file = st.file_uploader(
 
@@ -1961,7 +1821,7 @@ elif page == "Diagnose":
             with col2:
 
                 st.subheader(
-                    "🔬 AI Analysis"
+                    translate_text('🔬 AI Analysis')
                 )
 
                 diagnose = st.button(
@@ -1972,7 +1832,7 @@ elif page == "Diagnose":
                 if diagnose:
 
                     with st.spinner(
-                        "Analyzing crop..."
+                        t("analyzing")
                     ):
 
                         ai_result = (
@@ -2020,11 +1880,12 @@ elif page == "Diagnose":
                         add_record(
                             crop,
                             disease,
-                            confidence
+                            confidence,
+                            crop_id=diagnosis_crop_id
                         )
 
                         st.success(
-                            "✅ Analysis Complete"
+                            t("analysis_complete")
                         )
 
                         st.divider()
@@ -2050,7 +1911,7 @@ elif page == "Diagnose":
                         with r3:
 
                             st.metric(
-                                "🎯 Confidence",
+                                t("confidence"),
                                 f"{confidence:.2f}%"
                             )
 
@@ -2140,7 +2001,7 @@ elif page == "Diagnose":
 elif page == "Monitoring":
 
     st.title(
-        "📊 Crop Health Monitoring"
+        t("crop_health_monitoring")
     )
 
     history = load_history()
@@ -2176,28 +2037,28 @@ elif page == "Monitoring":
         with a:
 
             st.metric(
-                "🔬 Total Scans",
+                t("total_scans"),
                 total
             )
 
         with b:
 
             st.metric(
-                "🌱 Healthy",
+                translate_text('🌱 Healthy'),
                 healthy
             )
 
         with c:
 
             st.metric(
-                "🦠 Issues",
+                translate_text('🦠 Issues'),
                 issues
             )
 
         st.divider()
 
         st.subheader(
-            "📈 AI Confidence Trend"
+            t("confidence_trend")
         )
 
         recent = history[
@@ -2221,7 +2082,7 @@ elif page == "Monitoring":
         st.divider()
 
         st.subheader(
-            "📅 Diagnosis History"
+            t("diagnosis_history")
         )
 
         if (
@@ -2304,14 +2165,14 @@ elif page == "Monitoring":
         )
 
         if st.button(
-            "🗑️ Clear History",
+            t("clear_history"),
             disabled=not confirm_clear
         ):
 
             if save_history([]):
 
                 st.success(
-                    "History cleared."
+                    t("history_cleared")
                 )
 
                 st.session_state[
@@ -2328,12 +2189,11 @@ elif page == "Monitoring":
 elif page == "Disease Library":
 
     st.title(
-        "📚 Disease Library"
+        t("disease_library")
     )
 
     st.write(
-        "Explore supported crop diseases, "
-        "symptoms, management and prevention."
+        t("explore_diseases")
     )
 
     st.divider()
@@ -2367,7 +2227,7 @@ elif page == "Disease Library":
             if info:
 
                 st.write(
-                    "### 📋 Description"
+                    t("description")
                 )
 
                 st.write(
@@ -2377,7 +2237,7 @@ elif page == "Disease Library":
                 )
 
                 st.write(
-                    "### 🔍 Symptoms"
+                    t("symptoms")
                 )
 
                 for symptom in (
@@ -2391,7 +2251,7 @@ elif page == "Disease Library":
                     )
 
                 st.write(
-                    "### 🩺 Management"
+                    t("management")
                 )
 
                 for item in (
@@ -2405,7 +2265,7 @@ elif page == "Disease Library":
                     )
 
                 st.write(
-                    "### 🛡️ Prevention"
+                    t("prevention")
                 )
 
                 for item in (
@@ -2421,7 +2281,7 @@ elif page == "Disease Library":
             else:
 
                 st.info(
-                    "Information not available yet."
+                    t("information_not_available")
                 )
 
 
@@ -2432,7 +2292,7 @@ elif page == "Disease Library":
 elif page == "About":
 
     st.title(
-        "ℹ️ About Crop Doctor"
+        t("about_crop_doctor")
     )
 
     st.write(
@@ -2444,7 +2304,7 @@ elif page == "About":
     )
 
     st.subheader(
-        "🤖 AI Detection"
+        translate_text("🤖 AI Detection")
     )
 
     st.write(
@@ -2469,7 +2329,7 @@ elif page == "About":
     )
 
     st.subheader(
-        "🔥 Visual Change Heatmap"
+        translate_text("🔥 Visual Change Heatmap")
     )
 
     st.write(
@@ -2482,7 +2342,7 @@ elif page == "About":
     )
 
     st.subheader(
-        "📊 Daily Monitoring"
+        translate_text("📊 Daily Monitoring")
     )
 
     st.write(
@@ -2495,7 +2355,7 @@ elif page == "About":
     )
 
     st.subheader(
-        "🌾 Supported Crops"
+        t("supported_crops")
     )
 
     for crop in sorted(
@@ -2512,6 +2372,5 @@ elif page == "About":
     st.divider()
 
     st.caption(
-        "🌱 Crop Doctor — "
-        "AI-assisted crop health monitoring"
+        "🌱 Crop Doctor — " + translate_text("AI-assisted crop health monitoring")
     )

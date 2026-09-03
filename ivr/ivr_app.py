@@ -4,15 +4,6 @@ import json
 import os
 
 
-# ============================================================
-# PAGE CONFIG
-# ============================================================
-
-st.set_page_config(
-    page_title="Crop Doctor - IVR",
-    page_icon="📞",
-    layout="wide"
-)
 
 
 # ============================================================
@@ -192,9 +183,14 @@ for crop in crops:
     monitoring_records = [
         record
         for record in monitoring_history
-        if str(
-            record.get("crop_id", "")
-        ) == crop_id
+        if (
+            str(record.get("crop_id", "")) == crop_id
+            or (
+                not record.get("crop_id")
+                and str(record.get("crop", "")).strip().lower()
+                == str(crop["crop_name"]).strip().lower()
+            )
+        )
     ]
 
     latest_raksha = None
@@ -540,6 +536,16 @@ translations = {
     }
 }
 
+
+
+_EXTRA_TRANSLATIONS = {
+    "visual_status": {"en":"Visual status: {status}","te":"దృశ్య స్థితి: {status}","hi":"दृश्य स्थिति: {status}","mr":"दृश्य स्थिती: {status}"},
+    "last_observation": {"en":"Last observation: {date}","te":"చివరి పరిశీలన: {date}","hi":"अंतिम अवलोकन: {date}","mr":"शेवटचे निरीक्षण: {date}"},
+    "raksha_count": {"en":"Crop Raksha observations: {count}","te":"క్రాప్ రక్ష పరిశీలనలు: {count}","hi":"क्रॉप रक्षा अवलोकन: {count}","mr":"क्रॉप रक्षा निरीक्षणे: {count}"},
+    "monitoring_count": {"en":"Monitoring records: {count}","te":"పర్యవేక్షణ రికార్డులు: {count}","hi":"निगरानी रिकॉर्ड: {count}","mr":"निरीक्षण रेकॉर्ड: {count}"},
+}
+for _code in translations:
+    translations[_code].update({k: v[_code] for k, v in _EXTRA_TRANSLATIONS.items()})
 
 # ============================================================
 # SERIALIZE DATA FOR JAVASCRIPT
@@ -1925,8 +1931,7 @@ function showStatus(
         ) {
 
             text +=
-                "Last observation: "
-                + latest.date;
+                t("last_observation", {date: latest.date});
 
         }
 
@@ -1940,13 +1945,12 @@ function showStatus(
 
 
     text +=
-        "\n\nCrop Raksha observations: "
-        + crop.raksha_count;
-
+        "\n\n"
+        + t("raksha_count", {count: crop.raksha_count});
 
     text +=
-        "\nMonitoring records: "
-        + crop.monitoring_count;
+        "\n"
+        + t("monitoring_count", {count: crop.monitoring_count});
 
 
     respond(text);
@@ -2407,14 +2411,7 @@ function startCall() {
     );
 
 
-    const text =
-        "Welcome to Crop Doctor. "
-        + "I am your AI agricultural assistant. "
-        + "Please choose your language. "
-        + "Press 1 for English, "
-        + "2 for Telugu, "
-        + "3 for Hindi, "
-        + "or 4 for Marathi.";
+    const text = t("choose_language");
 
 
     respond(text);
@@ -3023,119 +3020,144 @@ window.onload =
 
 
 # ============================================================
-# INJECT PYTHON DATA
+# RENDERER
 # ============================================================
 
-page_html = page_html.replace(
-    "__LANGUAGES__",
-    translations_json
-)
+def render_anjaneya_voice():
+    global crops_data, raksha_history, monitoring_history
+    global crops, crop_records, translations_json, crops_json, page_html
 
-page_html = page_html.replace(
-    "__CROPS__",
-    crops_json
-)
+    crops_data = load_json(CROPS_FILE, [])
+    raksha_history = load_json(RAKSHA_FILE, [])
+    monitoring_history = load_json(MONITORING_FILE, [])
+    crops = normalize_crops(crops_data)
+
+    crop_records = []
+    for crop in crops:
+        crop_id = crop["id"]
+        raksha_records = [r for r in raksha_history if str(r.get("crop_id", "")) == crop_id]
+        monitoring_records = [r for r in monitoring_history if str(r.get("crop_id", "")) == crop_id or (not r.get("crop_id") and str(r.get("crop", "")).strip().lower() == str(crop["crop_name"]).strip().lower())]
+        latest_raksha = sorted(raksha_records, key=lambda x: str(x.get("date", "")))[-1] if raksha_records else None
+        latest_monitoring = sorted(monitoring_records, key=lambda x: str(x.get("date") or x.get("timestamp") or ""))[-1] if monitoring_records else None
+        crop_records.append({"id":crop_id,"crop_name":crop["crop_name"],"farmer_name":crop["farmer_name"],"field_label":crop["field_label"],"sowing_date":crop["sowing_date"],"raksha_count":len(raksha_records),"monitoring_count":len(monitoring_records),"latest_raksha":latest_raksha,"latest_monitoring":latest_monitoring})
+
+    translations_json = json.dumps(translations, ensure_ascii=False)
+    crops_json = json.dumps(crop_records, ensure_ascii=False)
+
+    # ============================================================
+    # INJECT PYTHON DATA
+    # ============================================================
+
+    html = page_html.replace(
+        "__LANGUAGES__",
+        translations_json
+    )
+
+    html = html.replace(
+        "__CROPS__",
+        crops_json
+    )
 
 
-# ============================================================
-# STREAMLIT TITLE
-# ============================================================
+    # ============================================================
+    # STREAMLIT TITLE
+    # ============================================================
 
-st.markdown(
-    """
-    <div style="
-        text-align:center;
-        padding:8px 0 4px 0;
-    ">
-
-        <h2 style="margin-bottom:0;">
-            📞 Crop Doctor — AI IVR
-        </h2>
-
-        <p style="
-            color:#888;
-            margin-top:4px;
+    st.markdown(
+        """
+        <div style="
+            text-align:center;
+            padding:8px 0 4px 0;
         ">
-            Multilingual Offline AI Voice Assistant
-        </p>
 
-    </div>
-    """,
-    unsafe_allow_html=True
-)
+            <h2 style="margin-bottom:0;">
+                🔱 Anjaneya — AI Voice Crop Guardian
+            </h2>
 
+            <p style="
+                color:#888;
+                margin-top:4px;
+            ">
+                Multilingual Offline AI Voice Assistant
+            </p>
 
-# ============================================================
-# INFORMATION
-# ============================================================
-
-with st.expander(
-    "ℹ️ IVR Demo — How it works",
-    expanded=False
-):
-
-    st.write(
-        """
-        **Crop Doctor IVR is a local voice assistant demonstration.**
-
-        The farmer can:
-
-        - 🎙️ Speak to the assistant
-        - 🔢 Use the keypad
-        - 🇬🇧 English
-        - 🇮🇳 Telugu
-        - 🇮🇳 Hindi
-        - 🇮🇳 Marathi
-        - 🩺 Crop Diagnosis
-        - 🌱 Crop Status
-        - 🛡️ Crop Raksha AI
-        - ❓ Help
-        - 🔁 Repeat
-        - ☎️ End Call
-
-        The application uses the browser's available speech voices.
-        No phone network or external telephony service is required.
-        """
+        </div>
+        """,
+        unsafe_allow_html=True
     )
 
 
-# ============================================================
-# DATA METRICS
-# ============================================================
+    # ============================================================
+    # INFORMATION
+    # ============================================================
 
-col1, col2, col3 = st.columns(3)
+    with st.expander(
+        "ℹ️ IVR Demo — How it works",
+        expanded=False
+    ):
+
+        st.write(
+            """
+            **Crop Doctor IVR is a local voice assistant demonstration.**
+
+            The farmer can:
+
+            - 🎙️ Speak to the assistant
+            - 🔢 Use the keypad
+            - 🇬🇧 English
+            - 🇮🇳 Telugu
+            - 🇮🇳 Hindi
+            - 🇮🇳 Marathi
+            - 🩺 Crop Diagnosis
+            - 🌱 Crop Status
+            - 🛡️ Crop Raksha AI
+            - ❓ Help
+            - 🔁 Repeat
+            - ☎️ End Call
+
+            The application uses the browser's available speech voices.
+            No phone network or external telephony service is required.
+            """
+        )
 
 
-with col1:
+    # ============================================================
+    # DATA METRICS
+    # ============================================================
 
-    st.metric(
-        "Registered Crops",
-        len(crop_records)
+    col1, col2, col3 = st.columns(3)
+
+
+    with col1:
+
+        st.metric(
+            "Registered Crops",
+            len(crop_records)
+        )
+
+
+    with col2:
+
+        st.metric(
+            "Raksha Records",
+            len(raksha_history)
+        )
+
+
+    with col3:
+
+        st.metric(
+            "Monitoring Records",
+            len(monitoring_history)
+        )
+
+
+    # ============================================================
+    # IVR
+    # ============================================================
+
+    components.html(
+        html,
+        height=850,
+        scrolling=False
     )
-
-
-with col2:
-
-    st.metric(
-        "Raksha Records",
-        len(raksha_history)
-    )
-
-
-with col3:
-
-    st.metric(
-        "Monitoring Records",
-        len(monitoring_history)
-    )
-
-
-# ============================================================
-# IVR
-# ============================================================
-
-components.html(
-    page_html,
-    height=850,
-    scrolling=False
-)

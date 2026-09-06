@@ -128,7 +128,8 @@ def add_monitoring_record(
     status="pending",
     observation="",
     disease="Unknown",
-    confidence=0
+    confidence=0,
+    heatmap_path=None
 ):
     """
     Save one Crop Raksha daily observation.
@@ -161,6 +162,8 @@ def add_monitoring_record(
         ),
 
         "image_path": image_path,
+
+        "heatmap_path": heatmap_path,
 
         "status": status,
 

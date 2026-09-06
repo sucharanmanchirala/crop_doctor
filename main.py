@@ -9,6 +9,9 @@ import os
 from PIL import Image, UnidentifiedImageError
 from datetime import datetime, date
 
+import os as _os
+_PROJECT_ROOT = _os.path.dirname(_os.path.abspath(__file__))
+
 from disease_info import DISEASE_INFO
 from streamlit_option_menu import option_menu
 
@@ -38,7 +41,21 @@ from crop_raksha_chat import (
     get_change_message
 )
 
-from language import t, render_language_selector, translate_text
+from language import t, render_language_selector, translate_text, translate_crop_name, translate_disease_name, get_translated_disease_info
+
+from treatment import get_treatment
+
+from demo import (
+    render_sih_demo_banner,
+    render_onboarding,
+    render_ai_explanation,
+    render_sample_images_gallery,
+    get_top_predictions,
+    get_voice_feedback_html,
+    export_diagnosis_csv,
+    export_raksha_csv,
+    get_current_demo_step,
+)
 from ivr.ivr_app import render_anjaneya_voice
 
 # =====================================================
@@ -65,33 +82,405 @@ PAGE_SIZE = 20
 # UI STYLE
 # =====================================================
 
-st.markdown("""
+st.markdown(
+    """
 <style>
 
+/* =======================================================
+   LIGHT AGRICULTURAL DASHBOARD THEME
+   Reference-style: clean, light, green accents
+   ======================================================= */
+
+/* Page background */
+.stApp {
+    background-color: #f7faf6;
+}
+
 .block-container {
-    padding-top: 2rem;
-    padding-bottom: 3rem;
+    padding-top: 1.25rem;
+    padding-bottom: 2.5rem;
+    max-width: 1400px;
 }
 
-.hero {
-    padding: 35px;
-    border-radius: 24px;
-    background: linear-gradient(135deg, #e8f5e9, #f7fff8);
-    border: 1px solid #d8eadb;
-    margin-bottom: 25px;
+/* Hide the default Streamlit header strip for a more app-like feel */
+#MainMenu {visibility: hidden;}
+header[data-testid="stHeader"] {background: transparent;}
+
+/* ---------- HERO (agricultural field gradient) ---------- */
+.hero-wrap {
+    position: relative;
+    border-radius: 22px;
+    overflow: hidden;
+    margin-bottom: 22px;
+    box-shadow: 0 8px 28px rgba(20,80,40,0.12);
+}
+.hero-bg {
+    position: absolute;
+    inset: 0;
+    background:
+        linear-gradient(135deg, rgba(20,80,40,0.78) 0%,
+                          rgba(46,125,50,0.62) 55%,
+                          rgba(102,187,106,0.25) 100%),
+        linear-gradient(180deg, #a5d6a7 0%, #66bb6a 100%);
+    background-blend-mode: multiply;
+}
+.hero-bg::after {
+    content: "";
+    position: absolute;
+    right: -120px;
+    top: -60px;
+    width: 420px;
+    height: 420px;
+    background: radial-gradient(circle at 30% 30%,
+                                rgba(255,255,255,0.25),
+                                transparent 70%);
+    border-radius: 50%;
+}
+.hero-bg::before {
+    content: "";
+    position: absolute;
+    left: 30%;
+    bottom: -200px;
+    width: 700px;
+    height: 260px;
+    background:
+        linear-gradient(0deg, rgba(46,125,50,0.35), transparent);
+    border-radius: 50%;
+    filter: blur(2px);
+}
+.hero-inner {
+    position: relative;
+    z-index: 2;
+    padding: 38px 36px 32px 36px;
+    color: #ffffff;
+}
+.hero-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255,255,255,0.18);
+    border: 1px solid rgba(255,255,255,0.28);
+    padding: 5px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #f1f8e9;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+}
+.hero-status .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #76ff7e;
+    box-shadow: 0 0 8px #76ff7e;
+}
+.hero-welcome {
+    font-size: 14px;
+    color: rgba(255,255,255,0.85);
+    margin: 14px 0 4px 0;
+    font-weight: 500;
+}
+.hero-name {
+    font-size: 36px;
+    font-weight: 800;
+    letter-spacing: -0.8px;
+    margin: 0 0 10px 0;
+    line-height: 1.15;
+}
+.hero-desc {
+    font-size: 15px;
+    line-height: 1.5;
+    color: rgba(255,255,255,0.92);
+    margin: 0 0 22px 0;
+    max-width: 540px;
+}
+.hero-cta {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+.hero-cta .stButton>button {
+    background: #ffffff !important;
+    color: #1b5e20 !important;
+    font-weight: 700 !important;
+    border: none !important;
+    padding: 9px 18px !important;
+    border-radius: 10px !important;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.18);
+    transition: all 0.15s ease;
+}
+.hero-cta .stButton>button:hover {
+    background: #f1f8e9 !important;
+    transform: translateY(-1px);
+}
+.hero-cta .secondary button {
+    background: transparent !important;
+    color: #ffffff !important;
+    border: 1.5px solid rgba(255,255,255,0.7) !important;
+    box-shadow: none !important;
+}
+.hero-cta .secondary button:hover {
+    background: rgba(255,255,255,0.12) !important;
 }
 
-.hero h1 {
-    font-size: 48px;
-    margin-bottom: 5px;
+/* ---------- KPI ROW ---------- */
+.kpi-card {
+    background: #ffffff;
+    border-radius: 14px;
+    padding: 16px 16px;
+    border: 1px solid #e6efe6;
+    box-shadow: 0 2px 10px rgba(20,80,40,0.04);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    height: 100%;
+}
+.kpi-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(20,80,40,0.10);
+}
+.kpi-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    margin-bottom: 8px;
+}
+.kpi-icon.green  { background: #e8f5e9; color: #2e7d32; }
+.kpi-icon.orange { background: #fff3e0; color: #ef6c00; }
+.kpi-icon.red    { background: #ffebee; color: #c62828; }
+.kpi-icon.blue   { background: #e3f2fd; color: #1565c0; }
+.kpi-label {
+    font-size: 12px;
+    color: #6b7e6b;
+    font-weight: 500;
+    margin-bottom: 2px;
+}
+.kpi-value {
+    font-size: 26px;
+    font-weight: 800;
+    color: #1b3a1f;
+    line-height: 1.15;
+}
+.kpi-delta {
+    font-size: 11px;
+    color: #2e7d32;
+    font-weight: 600;
+    margin-top: 2px;
+}
+.kpi-delta.warn { color: #c62828; }
+
+/* ---------- SECTION TITLE ---------- */
+.section-title {
+    font-size: 18px;
+    font-weight: 800;
+    color: #1b3a1f;
+    margin: 8px 0 12px 2px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.section-title .dot {
+    width: 8px; height: 8px;
+    background: #2e7d32;
+    border-radius: 50%;
 }
 
-.hero p {
-    font-size: 19px;
+/* ---------- AI MODULE CARDS ---------- */
+.ai-card {
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 20px 18px;
+    border: 1px solid #e6efe6;
+    box-shadow: 0 2px 12px rgba(20,80,40,0.05);
+    height: 100%;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.ai-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 24px rgba(20,80,40,0.10);
+}
+.ai-icon {
+    width: 44px; height: 44px;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    margin-bottom: 12px;
+    color: #ffffff;
+}
+.ai-icon.green  { background: linear-gradient(135deg, #43a047, #66bb6a); }
+.ai-icon.blue   { background: linear-gradient(135deg, #1e88e5, #26c6da); }
+.ai-icon.orange { background: linear-gradient(135deg, #fb8c00, #ffb300); }
+.ai-icon.purple { background: linear-gradient(135deg, #8e24aa, #d81b60); }
+.ai-card h4 {
+    font-size: 15px;
+    font-weight: 700;
+    color: #1b3a1f;
+    margin: 0 0 4px 0;
+}
+.ai-card p {
+    font-size: 12.5px;
+    color: #5b6e5b;
+    line-height: 1.45;
+    margin: 0;
+}
+
+/* ---------- MONITORING + ANJANEYA (2 col) ---------- */
+.panel-card {
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 20px;
+    border: 1px solid #e6efe6;
+    box-shadow: 0 2px 12px rgba(20,80,40,0.05);
+    height: 100%;
+}
+.panel-title {
+    font-size: 15px;
+    font-weight: 800;
+    color: #1b3a1f;
+    margin: 0 0 14px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.panel-title .ico {
+    width: 22px; height: 22px;
+    border-radius: 6px;
+    background: #e8f5e9;
+    color: #2e7d32;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+}
+.monitor-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid #f1f5f0;
+}
+.monitor-row:last-child { border-bottom: none; }
+.monitor-name {
+    flex: 0 0 110px;
+    font-size: 13px;
+    color: #1b3a1f;
+    font-weight: 600;
+}
+.monitor-bar {
+    flex: 1;
+    height: 7px;
+    background: #e8f5e9;
+    border-radius: 10px;
+    overflow: hidden;
+}
+.monitor-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #66bb6a, #2e7d32);
+    border-radius: 10px;
+}
+.monitor-pct {
+    flex: 0 0 40px;
+    text-align: right;
+    font-size: 12px;
+    color: #2e7d32;
+    font-weight: 700;
+}
+.anjaneya-mini {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    margin-bottom: 8px;
+}
+.anjaneya-icon {
+    width: 46px; height: 46px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #43a047, #66bb6a);
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    flex: 0 0 46px;
+}
+.anjaneya-mini h4 {
+    font-size: 15px;
+    font-weight: 700;
+    color: #1b3a1f;
+    margin: 0 0 4px 0;
+}
+.anjaneya-mini p {
+    font-size: 12.5px;
+    color: #5b6e5b;
+    margin: 0;
+    line-height: 1.4;
+}
+.anjaneya-btn .stButton>button {
+    background: #2e7d32 !important;
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    border: none !important;
+    padding: 7px 14px !important;
+    border-radius: 8px !important;
+    width: 100%;
+    margin-top: 10px;
+}
+.anjaneya-btn .stButton>button:hover {
+    background: #1b5e20 !important;
+}
+
+/* ---------- SUPPORTED CROPS (image row) ---------- */
+.crop-image-card {
+    background: #ffffff;
+    border-radius: 14px;
+    padding: 8px 8px 10px 8px;
+    border: 1px solid #e6efe6;
+    box-shadow: 0 2px 10px rgba(20,80,40,0.05);
+    text-align: center;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    height: 100%;
+}
+.crop-image-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 22px rgba(20,80,40,0.10);
+}
+.crop-image-card img {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    border-radius: 10px;
+    display: block;
+    margin-bottom: 6px;
+}
+.crop-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: #1b3a1f;
+    margin: 0;
+}
+.crop-count {
+    font-size: 11px;
+    color: #6b7e6b;
+    margin: 1px 0 0 0;
+}
+
+/* ---------- FOOTER ---------- */
+.app-footer {
+    text-align: center;
+    color: #6b7e6b;
+    font-size: 12px;
+    padding: 14px 0 4px 0;
+    margin-top: 18px;
+    border-top: 1px solid #e6efe6;
 }
 
 </style>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)
 
 
 # =====================================================
@@ -460,6 +849,15 @@ with st.sidebar:
 
     st.divider()
 
+    # ---- SIH DEMO MODE ----
+    demo_step = render_sih_demo_banner()
+
+    st.divider()
+
+    # ---- ONBOARDING ----
+    render_onboarding()
+
+    st.divider()
 
     render_language_selector()
 
@@ -487,6 +885,11 @@ with st.sidebar:
         t("about")
     ]
 
+    _nav_default = 0
+    _nav_target = st.session_state.pop("nav_target", None)
+    if _nav_target and _nav_target in page_labels:
+        _nav_default = page_labels.index(_nav_target)
+
     selected_page = option_menu(
 
         translate_text('Navigation'),
@@ -506,12 +909,17 @@ with st.sidebar:
 
         menu_icon="leaf",
 
-        default_index=0
+        default_index=_nav_default
     )
 
     page = page_names[
         page_labels.index(selected_page)
     ]
+
+    # ---- SIH DEMO MODE: auto-navigate ----
+    demo_step = get_current_demo_step()
+    if demo_step:
+        page = demo_step.get("page", page)
 
 
 
@@ -521,142 +929,407 @@ with st.sidebar:
 
 
 # =====================================================
+# DASHBOARD HELPERS
+# =====================================================
+import base64 as _b64
+
+
+def _img_b64(path):
+    """Encode a small image as a base64 data URI for inline HTML rendering."""
+    try:
+        with open(path, "rb") as f:
+            data = f.read()
+        return _b64.b64encode(data).decode("ascii")
+    except Exception:
+        return ""
+
+
+# =====================================================
 # DASHBOARD
 # =====================================================
 
 if page == "Dashboard":
 
-    st.markdown(
-        f"""
-        <div class="hero">
-
-            <h1>🌱 {t("app_name")}</h1>
-
-            <p>
-            {t("ai_assistant")}
-            </p>
-
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+    # Demo step overlay
+    demo_step = get_current_demo_step()
 
     history = load_history()
 
-    total_scans = len(
-        history
-    )
+    total_scans = len(history)
 
     healthy = sum(
         1
         for r in history
-        if r["disease"].lower()
-        == "healthy"
+        if r["disease"].lower() == "healthy"
     )
 
-    issues = (
-        total_scans -
-        healthy
-    )
+    issues = total_scans - healthy
 
     crops_count = len(
-        set(
-            r["crop"]
-            for r in history
-        )
+        set(r["crop"] for r in history)
     )
 
-    c1, c2, c3, c4 = st.columns(4)
-
-    with c1:
-
-        st.metric(
-            t("total_scans"),
-            total_scans
+    if total_scans > 0:
+        health_pct = int(
+            (healthy / total_scans) * 100
         )
+    else:
+        health_pct = 0
 
-    with c2:
-
-        st.metric(
-            translate_text('🌱 Healthy'),
-            healthy
-        )
-
-    with c3:
-
-        st.metric(
-            t("issues_detected"),
-            issues
-        )
-
-    with c4:
-
-        st.metric(
-            t("crops_monitored"),
-            crops_count
-        )
-
-    st.divider()
-
-    st.subheader(
-        translate_text('🚀 Crop Doctor Features')
+    # =====================================================
+    # HERO (agricultural gradient with status pill)
+    # =====================================================
+    st.markdown(
+        f"""
+        <div class="hero-wrap">
+          <div class="hero-bg"></div>
+          <div class="hero-inner">
+            <div class="hero-status">
+              <span class="dot"></span>
+              {t("ai_online")}
+            </div>
+            <div class="hero-welcome">{t("dashboard_welcome")}</div>
+            <div class="hero-name">{t("dashboard_farmer_greeting")}</div>
+            <div class="hero-desc">{t("dashboard_hero_subtitle")}</div>
+            <div class="hero-cta">
+        """,
+        unsafe_allow_html=True,
     )
 
-    c1, c2, c3 = st.columns(3)
+    hcol1, hcol2, _ = st.columns([1, 1, 4])
+    with hcol1:
+        st.markdown('<div class="hero-cta">', unsafe_allow_html=True)
+        if st.button(
+            f"🩺 {t('diagnose_crop')}",
+            key="hero_diagnose_btn",
+            use_container_width=True,
+        ):
+            st.session_state["nav_target"] = t("diagnose")
+            st.rerun()
+    with hcol2:
+        st.markdown(
+            '<div class="secondary">',
+            unsafe_allow_html=True,
+        )
+        if st.button(
+            f"📋 {t('view_recent_reports')}",
+            key="hero_reports_btn",
+            use_container_width=True,
+        ):
+            st.session_state["nav_target"] = t("monitoring")
+            st.rerun()
 
-    with c1:
+    st.markdown("</div></div></div></div>", unsafe_allow_html=True)
 
-        st.info("""
-        ### 🩺 AI Diagnosis
+    if demo_step:
+        st.info(
+            f"🎬 **{t('sih_demo_mode')}:** {t(demo_step['desc_key'])}"
+        )
 
-        Upload a leaf image and get
-        an AI-based disease prediction.
-        """)
+    # =====================================================
+    # 4 KPI CARDS
+    # =====================================================
+    st.markdown(
+        '<div class="section-title">'
+        f'{t("dashboard_kpi_overview")}'
+        '<span class="dot"></span></div>',
+        unsafe_allow_html=True,
+    )
 
-    with c2:
+    k1, k2, k3, k4 = st.columns(4)
 
-        st.info("""
-        ### 🛡️ Crop Raksha
+    with k1:
+        st.markdown(
+            f"""
+            <div class="kpi-card">
+                <div class="kpi-icon green">🩺</div>
+                <div class="kpi-label">{t("kpi_total_scans")}</div>
+                <div class="kpi-value">{total_scans}</div>
+                <div class="kpi-delta">↑ {t("kpi_tracked")}</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
-        Monitor your crop every day
-        and detect changes over time.
-        """)
+    with k2:
+        st.markdown(
+            f"""
+            <div class="kpi-card">
+                <div class="kpi-icon orange">🌿</div>
+                <div class="kpi-label">{t("kpi_healthy")}</div>
+                <div class="kpi-value">{healthy}</div>
+                <div class="kpi-delta">↑ {t("kpi_tracked")}</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
-    with c3:
+    with k3:
+        delta_class = "warn" if issues > 0 else ""
+        st.markdown(
+            f"""
+            <div class="kpi-card">
+                <div class="kpi-icon red">⚠️</div>
+                <div class="kpi-label">{t("kpi_issues")}</div>
+                <div class="kpi-value">{issues}</div>
+                <div class="kpi-delta {delta_class}">
+                  {t("needs_attention") if issues > 0 else t("all_clear")}
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
-        st.info("""
-        ### 🩺 Management Advice
+    with k4:
+        st.markdown(
+            f"""
+            <div class="kpi-card">
+                <div class="kpi-icon blue">📋</div>
+                <div class="kpi-label">{t("kpi_crops")}</div>
+                <div class="kpi-value">{crops_count}</div>
+                <div class="kpi-delta">↑ {t("kpi_tracked")}</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
-        Get management and prevention
-        information for detected problems.
-        """)
+    # =====================================================
+    # AI INTELLIGENCE MODULES (4 cards in one row)
+    # =====================================================
+    st.markdown(
+        '<div class="section-title">'
+        f'{t("ai_intelligence_modules")}'
+        '<span class="dot"></span></div>',
+        unsafe_allow_html=True,
+    )
 
-    st.divider()
+    a1, a2, a3, a4 = st.columns(4)
 
-    st.subheader(
-        t("supported_crops")
+    with a1:
+        st.markdown(
+            f"""
+            <div class="ai-card">
+                <div class="ai-icon green">🩺</div>
+                <h4>{t("ai_diagnosis_feature")}</h4>
+                <p>{t("ai_diagnosis_desc")}</p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    with a2:
+        st.markdown(
+            f"""
+            <div class="ai-card">
+                <div class="ai-icon blue">🛡️</div>
+                <h4>{t("crop_raksha_feature")}</h4>
+                <p>{t("crop_raksha_desc")}</p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    with a3:
+        st.markdown(
+            f"""
+            <div class="ai-card">
+                <div class="ai-icon orange">📈</div>
+                <h4>{t("monitoring_short")}</h4>
+                <p>{t("monitoring_desc")}</p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    with a4:
+        st.markdown(
+            f"""
+            <div class="ai-card">
+                <div class="ai-icon purple">📚</div>
+                <h4>{t("disease_library_short")}</h4>
+                <p>{t("disease_library_desc")}</p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    # =====================================================
+    # MONITORING PROGRESS  |  ANJANEYA VOICE (2 cols)
+    # =====================================================
+    st.markdown(
+        '<div class="section-title">'
+        f'{t("monitoring_progress")}'
+        '<span class="dot"></span></div>',
+        unsafe_allow_html=True,
+    )
+
+    mon_l, mon_r = st.columns([7, 5])
+
+    with mon_l:
+        # Build per-crop rows based on history (top 4)
+        rows_html = ""
+        by_crop = {}
+        for r in history:
+            cname = r.get("crop", "—")
+            dname = (r.get("disease", "") or "").lower()
+            by_crop.setdefault(cname, [0, 0])
+            by_crop[cname][0] += 1
+            if dname == "healthy":
+                by_crop[cname][1] += 1
+
+        # If no history, fall back to class data
+        if not by_crop:
+            for c in class_names:
+                crop_label = translate_crop_name(get_crop_name(c))
+                rows_html += (
+                    f'<div class="monitor-row">'
+                    f'<div class="monitor-name">{crop_label}</div>'
+                    f'<div class="monitor-bar">'
+                    f'<div class="monitor-fill" style="width:100%;"></div>'
+                    f'</div>'
+                    f'<div class="monitor-pct">100%</div>'
+                    f'</div>'
+                )
+        else:
+            for crop_label, (n, h) in list(by_crop.items())[:4]:
+                pct = int((h / n) * 100) if n else 0
+                rows_html += (
+                    f'<div class="monitor-row">'
+                    f'<div class="monitor-name">{translate_crop_name(crop_label)}</div>'
+                    f'<div class="monitor-bar">'
+                    f'<div class="monitor-fill" style="width:{pct}%;"></div>'
+                    f'</div>'
+                    f'<div class="monitor-pct">{pct}%</div>'
+                    f'</div>'
+                )
+
+        st.markdown(
+            f"""
+            <div class="panel-card">
+                <div class="panel-title">
+                    <span class="ico">📊</span>
+                    {t("dashboard_crop_health")}
+                </div>
+                {rows_html or ''}
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    with mon_r:
+        # Clickable button to launch Anjaneya
+        st.markdown(
+            f"""
+            <div class="panel-card">
+                <div class="anjaneya-mini">
+                    <div class="anjaneya-icon">🎙️</div>
+                    <div>
+                        <h4>{t("anjaneya_card_title")}</h4>
+                        <p>{t("anjaneya_card_desc")}</p>
+                    </div>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        st.markdown('<div class="anjaneya-btn">', unsafe_allow_html=True)
+        if st.button(
+            f"🎙️ {t('anjaneya_voice')}",
+            key="dashboard_anjaneya_btn",
+            use_container_width=True,
+        ):
+            st.session_state["nav_target"] = t("anjaneya_voice")
+            st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    # =====================================================
+    # SUPPORTED CROP SPECIES (image row)
+    # =====================================================
+    st.markdown(
+        '<div class="section-title">'
+        f'{t("supported_crop_species")}'
+        '<span class="dot"></span></div>',
+        unsafe_allow_html=True,
     )
 
     supported_crops = sorted(
-        set(
-            get_crop_name(c)
-            for c in class_names
-        )
+        set(get_crop_name(c) for c in class_names)
     )
 
-    crop_columns = st.columns(5)
+    # Build disease-count per crop for the caption
+    crop_to_diseases = {}
+    for c in class_names:
+        crop_to_diseases.setdefault(get_crop_name(c), set()).add(c)
 
-    for i, crop in enumerate(
-        supported_crops
-    ):
+    # Resolve the images directory once, anchored to the project root
+    # so the Dashboard works regardless of the user's CWD.
+    _images_dir = _os.path.join(_PROJECT_ROOT, "demo_images", "dashboard")
+    _image_cache = {}
 
-        with crop_columns[
-            i % 5
-        ]:
+    # Explicit, hard-coded crop -> dashboard image mapping.
+    # The Dashboard MUST use these exact dashboard_*.jpg files. There is no
+    # fallback search and no generic substitution.
+    _crop_image_map = {
+        "banana":   "dashboard_banana.jpg",
+        "corn":     "dashboard_corn.jpg",
+        "cotton":   "dashboard_cotton.jpg",
+        "grape":    "dashboard_grape.jpg",
+        "mango":    "dashboard_mango.jpg",
+        "paddy":    "dashboard_paddy.jpg",
+        "potato":   "dashboard_potato.jpg",
+        "soybean":  "dashboard_soybean.jpg",
+        "tomato":   "dashboard_tomato.jpg",
+        "wheat":    "dashboard_wheat.jpg",
+    }
 
-            st.write(
-                f"🌱 **{crop}**"
-            )
+    def _resolve_crop_image(crop):
+        """Return an absolute path to the dashboard image for `crop`.
+
+        The function looks up the explicit map above. If a crop has no
+        mapping (or the file is missing), it returns None so the caller
+        can render the card without an image rather than substituting a
+        generic or diseased photo.
+        """
+        if not _os.path.isdir(_images_dir):
+            return None
+        key = crop.lower()
+        chosen = _crop_image_map.get(key)
+        if not chosen:
+            return None
+        candidate = _os.path.join(_images_dir, chosen)
+        if _os.path.isfile(candidate):
+            return candidate
+        return None
+
+    cols_per_row = 6
+    for start in range(0, len(supported_crops), cols_per_row):
+        row_crops = supported_crops[start:start + cols_per_row]
+        row_cols = st.columns(len(row_crops))
+        for i, crop in enumerate(row_crops):
+            with row_cols[i]:
+                if crop not in _image_cache:
+                    _image_cache[crop] = _resolve_crop_image(crop)
+                img_path = _image_cache[crop]
+                diseases_n = len(crop_to_diseases.get(crop, []))
+                img_b64 = _img_b64(img_path) if img_path else ""
+                st.markdown(
+                    f"""
+                    <div class="crop-image-card">
+                      <img src="data:image/jpeg;base64,{img_b64}" />
+                      <p class="crop-name">{translate_crop_name(crop)}</p>
+                      <p class="crop-count">{diseases_n} {t("diseases_tracked") if "diseases_tracked" in t.__globals__ else "diseases tracked"}</p>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+
+    # =====================================================
+    # FOOTER
+    # =====================================================
+    st.markdown(
+        f'<div class="app-footer">{t("footer_text")}</div>',
+        unsafe_allow_html=True,
+    )
 
 
 # =====================================================
@@ -680,24 +1353,27 @@ elif page == "Crop Registration":
     ):
 
         farmer_name = st.text_input(
-            translate_text("👨‍🌾 Farmer Name")
+            t("farmer_name")
         )
 
         crop_name = st.selectbox(
 
             t("crop"),
 
-            sorted(
-                set(
-                    get_crop_name(c)
-                    for c in class_names
+            [
+                translate_crop_name(c)
+                for c in sorted(
+                    set(
+                        get_crop_name(c)
+                        for c in class_names
+                    )
                 )
-            )
+            ]
         )
 
         field_label = st.text_input(
-            translate_text("📍 Field Name"),
-            placeholder="Example: Field 1"
+            t("field_name"),
+            placeholder=t("example_field")
         )
 
         sowing_date = st.date_input(
@@ -705,11 +1381,11 @@ elif page == "Crop Registration":
         )
 
         monitoring_time = st.time_input(
-            translate_text("⏰ Daily Crop Raksha Monitoring Time")
+            t("daily_crop_raksha_time")
         )
 
         submitted = st.form_submit_button(
-            translate_text("🌱 Register Crop")
+            t("register_crop")
         )
 
         if submitted:
@@ -717,13 +1393,13 @@ elif page == "Crop Registration":
             if not farmer_name.strip():
 
                 st.error(
-                    translate_text("Please enter the farmer name.")
+                    t("please_enter_farmer_name")
                 )
 
             elif sowing_date > date.today():
 
                 st.error(
-                    translate_text("The date of sowing cannot be in the future.")
+                    t("date_not_future")
                 )
 
             else:
@@ -745,49 +1421,45 @@ elif page == "Crop Registration":
                 )
 
                 st.success(
-                    translate_text("✅ Crop registered successfully!")
+                    t("crop_registered_success")
                 )
 
                 st.write(
-                    f"**Farmer:** {farmer_name}"
+                    f"**{t('farmer_label')}** {farmer_name}"
                 )
 
                 st.write(
-                    f"**Crop:** {crop_name}"
+                    f"**{t('crop_label')}** {crop_name}"
                 )
 
                 st.write(
-                    f"**Field:** "
-                    f"{field_label or 'Not specified'}"
+                    f"**{t('field_label')}** "
+                    f"{field_label or t('not_specified')}"
                 )
 
                 st.write(
-                    f"**Date of Sowing:** "
+                    f"**{t('date_of_sowing')}** "
                     f"{sowing_date}"
                 )
 
                 st.write(
-                    f"**Daily Crop Raksha Time:** "
+                    f"**{t('crop_raksha_time_label')}** "
                     f"{monitoring_time.strftime('%I:%M %p')}"
                 )
 
                 st.write(
-                    f"**Crop ID:** `{crop_id}`"
+                    f"**{t('crop_id_label')}** `{crop_id}`"
                 )
 
     st.divider()
 
-    st.subheader(
-        translate_text("🌾 My Registered Crops")
-    )
+    st.subheader(t("my_registered_crops"))
 
     crops = load_crops()
 
     if not crops:
 
-        st.info(
-            translate_text("No crops registered yet.")
-        )
+        st.info(t("no_crops_registered"))
 
     else:
 
@@ -797,8 +1469,13 @@ elif page == "Crop Registration":
                 border=True
             ):
 
+                # Translate crop_name for display while keeping internal storage
+                display_crop_name = translate_crop_name(crop.get("crop_name", ""))
+                display_field = crop.get("field_label", "")
+                full_display = f"{display_crop_name} — {display_field}" if display_field else display_crop_name
+
                 st.write(
-                    f"### 🌱 {display_name(crop)}"
+                    f"### 🌱 {full_display}"
                 )
 
                 if crop.get(
@@ -806,18 +1483,19 @@ elif page == "Crop Registration":
                 ):
 
                     st.write(
-                        f"👨‍🌾 Farmer: "
+                        f"👨‍🌾 {t('farmer_label')} "
                         f"{crop['farmer_name']}"
                     )
 
                 st.write(
-                    f"📅 Sowing Date: "
+                    f"{t('sowing_date_label')} "
                     f"{crop['sowing_date']}"
                 )
 
+                crop_age_value = days_since_sowing(crop['sowing_date'])
                 st.write(
-                    f"🌿 Crop Age: "
-                    f"{days_since_sowing(crop['sowing_date'])} days"
+                    f"🌿 {t('crop_age')}: "
+                    f"{crop_age_value} {t('crop_age_days')}"
                 )
 
                 if crop.get(
@@ -842,17 +1520,17 @@ elif page == "Crop Registration":
                         )
 
                     st.write(
-                        f"⏰ Crop Raksha Time: "
+                        f"{t('crop_raksha_time_field')} "
                         f"{formatted_time}"
                     )
 
                 st.write(
-                    f"🟢 Status: "
+                    f"{t('status_label')} "
                     f"{crop.get('status', 'unknown')}"
                 )
 
                 if st.button(
-                    "🗑️ Delete",
+                    t("delete"),
                     key=f"delete_{crop['id']}"
                 ):
 
@@ -873,9 +1551,7 @@ elif page == "Crop Raksha":
         f"🛡️ {t('crop_raksha')}"
     )
 
-    st.write(
-        translate_text('Your AI crop companion for continuous daily monitoring.')
-    )
+    st.write(t('ai_crop_companion_monitoring'))
 
     st.divider()
 
@@ -887,13 +1563,9 @@ elif page == "Crop Raksha":
 
     if not crops:
 
-        st.warning(
-            translate_text('🌱 No crops registered yet.')
-        )
+        st.warning(t('no_crops_registered'))
 
-        st.info(
-            translate_text('Go to Crop Registration and register your crop first.')
-        )
+        st.info(t('go_to_crop_registration'))
 
     else:
 
@@ -906,9 +1578,7 @@ elif page == "Crop Raksha":
 
         if not active_crops:
 
-            st.warning(
-                translate_text('No active crops found.')
-            )
+            st.warning(t('no_active_crops'))
 
         else:
 
@@ -916,15 +1586,16 @@ elif page == "Crop Raksha":
             # SELECT CROP
             # =================================================
 
-            crop_options = {
-                display_name(crop):
-                    crop["id"]
-
-                for crop in active_crops
-            }
+            # Build options with translated crop names for display
+            crop_options = {}
+            for crop in active_crops:
+                translated_name = translate_crop_name(crop.get("crop_name", ""))
+                field = crop.get("field_label", "")
+                display = f"{translated_name} — {field}" if field else translated_name
+                crop_options[display] = crop["id"]
 
             selected_crop_name = st.selectbox(
-                translate_text('🌾 Select your crop'),
+                t('select_your_crop'),
                 list(
                     crop_options.keys()
                 )
@@ -999,9 +1670,7 @@ elif page == "Crop Raksha":
             # CROP PROFILE
             # =================================================
 
-            st.subheader(
-                translate_text('🌱 Crop Profile')
-            )
+            st.subheader(t('crop_profile'))
 
             c1, c2, c3, c4 = st.columns(4)
 
@@ -1009,7 +1678,7 @@ elif page == "Crop Raksha":
 
                 st.metric(
                     t("crop"),
-                    selected_crop["crop_name"]
+                    translate_crop_name(selected_crop["crop_name"])
                 )
 
             with c2:
@@ -1023,7 +1692,7 @@ elif page == "Crop Raksha":
 
                 st.metric(
                     t("crop_age"),
-                    f"{crop_age} days"
+                    f"{crop_age} {t('crop_age_days')}"
                 )
 
             with c4:
@@ -1034,8 +1703,7 @@ elif page == "Crop Raksha":
                 )
 
             st.info(
-                f"⏰ Your daily Crop Raksha time is "
-                f"**{display_time}**"
+                f"{t('daily_raksha_time_info')} **{display_time}**"
             )
 
             st.divider()
@@ -1044,15 +1712,9 @@ elif page == "Crop Raksha":
             # CROP RAKSHA AI COMPANION
             # =================================================
 
-            st.subheader(
-                f"🤖 {t('crop_raksha')}"
-            )
+            st.subheader(t('crop_raksha_ai_companion'))
 
-            st.caption(
-                "Your AI crop companion remembers your monitoring "
-                "history and helps you understand what is happening "
-                "over time."
-            )
+            st.caption(t('companion_remembers_history'))
 
             render_crop_raksha_chat(
                 selected_crop,
@@ -1068,15 +1730,13 @@ elif page == "Crop Raksha":
             if monitoring_due:
 
                 st.subheader(
-                    f"📸 Day {next_day} — Daily Crop Check"
+                    t("daily_crop_check", day=next_day)
                 )
 
-                st.write(
-                    translate_text("Let's record today's condition.")
-                )
+                st.write(t("record_today_condition"))
 
                 uploaded_image = st.file_uploader(
-                    "📷 Upload today's crop photograph",
+                    t("upload_crops_photograph"),
                     type=[
                         "jpg",
                         "jpeg",
@@ -1099,17 +1759,14 @@ elif page == "Crop Raksha":
 
                         st.image(
                             image,
-                            caption=(
-                                f"Day {next_day} "
-                                f"observation"
-                            ),
+                            caption=t("day_observation", day=next_day),
                             width="stretch"
                         )
 
                         st.divider()
 
                         if st.button(
-                            f"💾 Save Day {next_day} Observation",
+                            t("save_day_observation", day=next_day),
                             width="stretch",
                             key=(
                                 f"save_raksha_"
@@ -1187,6 +1844,7 @@ elif page == "Crop Raksha":
 
                             previous_image = None
                             heatmap = None
+                            heatmap_path = None
 
                             if previous_record:
 
@@ -1222,6 +1880,20 @@ elif page == "Crop Raksha":
                                         previous_image,
                                         image
                                     )
+
+                                    # Persist the heatmap so it survives
+                                    # Streamlit reruns and can be shown
+                                    # again from the monitoring timeline.
+                                    if heatmap is not None:
+                                        heatmap_filename = (
+                                            f"{selected_crop_id}"
+                                            f"_day_{next_day}_heatmap.jpg"
+                                        )
+                                        heatmap_path = os.path.join(
+                                            "crop_raksha_images",
+                                            heatmap_filename
+                                        )
+                                        heatmap.save(heatmap_path, "JPEG", quality=95)
 
                                 except (
                                     OSError,
@@ -1349,7 +2021,10 @@ elif page == "Crop Raksha":
                                         predicted_disease,
 
                                     confidence=
-                                        ai_confidence
+                                        ai_confidence,
+
+                                    heatmap_path=
+                                        heatmap_path
                                 )
                             )
 
@@ -1357,10 +2032,7 @@ elif page == "Crop Raksha":
                             # RESULT
                             # =================================
 
-                            st.success(
-                                f"✅ Day {record['day']} "
-                                f"observation saved!"
-                            )
+                            st.success(t("observation_saved", day=record['day']))
 
                             st.divider()
 
@@ -1373,31 +2045,23 @@ elif page == "Crop Raksha":
                                     and heatmap is not None
                             ):
 
-                                st.subheader(
-                                    translate_text("🔥 Visual Change Heatmap")
-                                )
+                                st.subheader(t("visual_change_heatmap"))
 
-                                st.caption(
-                                    "Bright areas indicate regions where "
-                                    "the crop image changed most compared "
-                                    "with the previous observation."
-                                )
+                                st.caption(t("bright_areas_caption"))
 
                                 st.image(
                                     heatmap,
-                                    caption=translate_text("Hotter/brighter areas show where the current image differs most from the previous observation."),
+                                    caption=t("hotter_areas_caption"),
                                     width="stretch"
                                 )
 
                                 if difference is not None:
                                     st.info(
-                                        f"📊 Overall visual difference: "
+                                        f"{t('overall_visual_difference')} "
                                         f"**{difference:.2f}%**"
                                     )
 
-                            st.subheader(
-                                translate_text('🤖 Crop Raksha AI Assessment')
-                            )
+                            st.subheader(t('crop_raksha_ai_assessment'))
 
                             if ai_result:
 
@@ -1408,16 +2072,14 @@ elif page == "Crop Raksha":
                                 with r1:
 
                                     st.metric(
-                                        "🌱 Crop",
-                                        ai_result[
-                                            "crop"
-                                        ]
+                                        t("crop"),
+                                        translate_crop_name(ai_result["crop"])
                                     )
 
                                 with r2:
 
                                     st.metric(
-                                        translate_text("🔬 AI Result"),
+                                        t("ai_result_label"),
                                         ai_result[
                                             "disease"
                                         ]
@@ -1436,26 +2098,14 @@ elif page == "Crop Raksha":
 
                             st.divider()
 
-                            st.subheader(
-                                translate_text("🔥 Visual Change Analysis")
-                            )
+                            st.subheader(t("visual_change_analysis"))
 
                             if (
                                 change_level
                                 == "baseline"
                             ):
 
-                                st.info(
-                                    """
-                                    🌱 **Baseline created**
-
-                                    This is the first Crop Raksha
-                                    observation.
-
-                                    Future observations will be
-                                    compared against previous images.
-                                    """
-                                )
+                                st.info(t("baseline_created_msg"))
 
                             else:
 
@@ -1468,7 +2118,7 @@ elif page == "Crop Raksha":
                                     if difference is not None:
 
                                         st.metric(
-                                            translate_text('📊 Visual Difference'),
+                                            t('visual_difference_label'),
                                             f"{difference:.2f}%"
                                         )
 
@@ -1479,27 +2129,21 @@ elif page == "Crop Raksha":
                                         == "normal"
                                     ):
 
-                                        st.success(
-                                            translate_text('🟢 Normal')
-                                        )
+                                        st.success(t('normal'))
 
                                     elif (
                                         change_level
                                         == "minor_change"
                                     ):
 
-                                        st.warning(
-                                            translate_text('🟠 Minor Change')
-                                        )
+                                        st.warning(t('minor_change'))
 
                                     elif (
                                         change_level
                                         == "significant_change"
                                     ):
 
-                                        st.error(
-                                            translate_text('🔴 Significant Change')
-                                        )
+                                        st.error(t('significant_change'))
 
                             # =================================
                             # CROP RAKSHA COMPANION MESSAGES
@@ -1507,9 +2151,7 @@ elif page == "Crop Raksha":
 
                             st.divider()
 
-                            st.subheader(
-                                translate_text('🤖 Crop Raksha Assessment')
-                            )
+                            st.subheader(t('crop_raksha_assessment'))
 
                             st.markdown(
                                 get_change_message(
@@ -1536,19 +2178,9 @@ elif page == "Crop Raksha":
                                 and ai_confidence >= 60
                             ):
 
-                                st.error(
-                                    "🚨 Crop Raksha detected "
-                                    "a significant visual "
-                                    "change and the AI "
-                                    "identified a possible "
-                                    "crop health issue."
-                                )
+                                st.error(t("significant_change_detected_alert"))
 
-                                st.warning(
-                                    "🩺 Please open the "
-                                    "Diagnose section for "
-                                    "a detailed assessment."
-                                )
+                                st.warning(t("open_diagnose_section"))
 
                             elif (
                                 change_level
@@ -1559,33 +2191,19 @@ elif page == "Crop Raksha":
                                 and is_healthy
                             ):
 
-                                st.warning(
-                                    "🟠 Crop Raksha noticed "
-                                    "a visual change, but "
-                                    "the AI currently "
-                                    "considers the crop "
-                                    "healthy."
-                                )
+                                st.warning(t("visual_change_noticed_healthy"))
 
                             elif is_healthy:
 
-                                st.success(
-                                    "🟢 Crop Raksha currently "
-                                    "sees no major health "
-                                    "concern."
-                                )
+                                st.success(t("no_major_health_concern"))
 
                             else:
 
-                                st.warning(
-                                    "🟠 The AI detected a "
-                                    "possible issue. "
-                                    "Consider using the "
-                                    "Diagnose section "
-                                    "for confirmation."
-                                )
+                                st.warning(t("possible_issue_detected"))
 
-                            st.rerun()
+                            # Do not call st.rerun() here. The heatmap and
+                            # assessment are rendered in this run. A forced
+                            # rerun would immediately discard that UI output.
 
             else:
 
@@ -1612,33 +2230,13 @@ elif page == "Crop Raksha":
                 if today_record:
 
                     st.success(
-                        f"""
-                        ✅ **Today's Crop Raksha
-                        check is complete!**
-
-                        You completed today's observation
-                        at **{today_record['date'].split(" ")[1]}**.
-
-                        🧠 Crop Raksha has remembered it.
-
-                        Your next observation will be
-                        available tomorrow.
-                        """
+                        t("todays_check_complete", time=today_record['date'].split(" ")[1])
                     )
 
                 else:
 
                     st.info(
-                        f"""
-                        ⏰ **Today's Crop Raksha check
-                        is not due yet.**
-
-                        Your selected monitoring time is
-                        **{display_time}**.
-
-                        Come back at that time and we'll
-                        continue today's crop check.
-                        """
+                        t("check_not_due_yet", time=display_time)
                     )
 
             # =================================================
@@ -1647,16 +2245,11 @@ elif page == "Crop Raksha":
 
             st.divider()
 
-            st.subheader(
-                "📅 Crop Raksha Timeline"
-            )
+            st.subheader(t("crop_raksha_timeline"))
 
             if not records:
 
-                st.info(
-                    "Your daily observations "
-                    "will appear here."
-                )
+                st.info(t("observations_appear_here"))
 
             else:
 
@@ -1696,7 +2289,7 @@ elif page == "Crop Raksha":
                         with c1:
 
                             st.write(
-                                f"### 🌱 Day "
+                                f"### {t('day_label')} "
                                 f"{record['day']}"
                             )
 
@@ -1710,7 +2303,7 @@ elif page == "Crop Raksha":
                         with c3:
 
                             st.write(
-                                f"Status: "
+                                f"{t('status_label')} "
                                 f"**{record['status']}**"
                             )
 
@@ -1723,19 +2316,28 @@ elif page == "Crop Raksha":
                         ):
 
                             st.caption(
-                                f"🤖 AI: "
+                                f"{t('ai_caption')} "
                                 f"{record['disease']} "
                                 f"({record.get('confidence', 0):.1f}%)"
                             )
+
+                        # Persisted visual-change map. This makes the heatmap
+                        # available even after Streamlit reruns or navigation.
+                        saved_heatmap_path = record.get("heatmap_path")
+                        if saved_heatmap_path and os.path.exists(saved_heatmap_path):
+                            with st.expander(t("view_heatmap")):
+                                st.image(
+                                    saved_heatmap_path,
+                                    caption=t("hotter_areas_caption"),
+                                    width="stretch"
+                                )
 
                 if shown < len(
                     ordered_records
                 ):
 
                     if st.button(
-                        f"Show more "
-                        f"(showing {shown} of "
-                        f"{len(ordered_records)})",
+                        t("show_more", shown=shown, total=len(ordered_records)),
                         key=(
                             f"raksha_more_"
                             f"{selected_crop_id}"
@@ -1768,21 +2370,26 @@ elif page == "Diagnose":
         f"🩺 {t('crop_diagnosis')}"
     )
 
-    st.write(
-        t("upload_leaf")
-    )
+    st.write(t("upload_leaf"))
 
     registered_crops = load_crops()
 
+    # Build crop link options with translated names
     diagnosis_crop_labels = {
-        translate_text("— General diagnosis (not linked to a crop) —"): None
+        t("general_diagnosis"): None
     }
-
     for registered_crop in registered_crops:
-        diagnosis_crop_labels[display_name(registered_crop)] = registered_crop["id"]
+        display_name_crop = display_name(registered_crop)
+        # Translate the crop name in display
+        translated_display = display_name_crop
+        if registered_crop.get("crop_name"):
+            translated_display = translate_crop_name(registered_crop.get("crop_name", ""))
+            if registered_crop.get("field_label"):
+                translated_display = f"{translated_display} — {registered_crop.get('field_label', '')}"
+        diagnosis_crop_labels[translated_display] = registered_crop["id"]
 
     selected_diagnosis_crop = st.selectbox(
-        translate_text("🌾 Link diagnosis to a registered crop"),
+        t("link_diagnosis_crop"),
         list(diagnosis_crop_labels.keys()),
         key="diagnosis_crop_link"
     )
@@ -1800,198 +2407,241 @@ elif page == "Diagnose":
         ]
     )
 
-    if uploaded_file:
+    # =====================================================
+    # SAMPLE IMAGES GALLERY
+    # =====================================================
+    render_sample_images_gallery()
 
-        image = safe_open_image(
-            uploaded_file
-        )
+    # =====================================================
+    # AI ANALYSIS
+    # =====================================================
+    # Determine which image to use
+    process_image = None
 
-        if image is not None:
+    # Check if diagnosis was just completed from a sample image (clear the flag)
+    if st.session_state.get("sample_diagnose_completed"):
+        if "auto_sample_data" in st.session_state:
+            del st.session_state["auto_sample_data"]
+        st.session_state.sample_diagnose_completed = False
 
-            col1, col2 = st.columns(2)
+    # Check if a sample image was selected from the gallery
+    if "auto_sample_data" in st.session_state and st.session_state.get("auto_sample_data"):
+        sample_data = st.session_state["auto_sample_data"]
+        try:
+            process_image = Image.open(sample_data["image_path"]).convert("RGB")
+        except Exception:
+            st.warning(t("sample_load_error", id=sample_data.get("id", "unknown")))
+            process_image = None
 
-            with col1:
+    # If no sample image, use uploaded file
+    if process_image is None and uploaded_file:
+        process_image = safe_open_image(uploaded_file)
 
-                st.image(
-                    image,
-                    caption="Uploaded leaf",
-                    width="stretch"
-                )
+    if process_image is not None:
 
-            with col2:
+        col1, col2 = st.columns([1, 1])
 
-                st.subheader(
-                    translate_text('🔬 AI Analysis')
-                )
+        with col1:
 
-                diagnose = st.button(
-                    f"🩺 {t('diagnose_crop')}",
-                    width="stretch"
-                )
+            st.image(
+                process_image,
+                caption=t("uploaded_leaf"),
+                width="stretch"
+            )
 
-                if diagnose:
+        with col2:
 
-                    with st.spinner(
-                        t("analyzing")
-                    ):
+            st.subheader(t('ai_analysis'))
 
-                        ai_result = (
-                            analyze_crop_image(
-                                image
-                            )
+            diagnose = st.button(
+                f"🩺 {t('diagnose_crop')}",
+                width="stretch",
+                key="diagnose_btn"
+            )
+
+            # Check if this is a sample image diagnosis
+            is_sample_diagnosis = "auto_sample_data" in st.session_state and st.session_state.get("auto_sample_data")
+
+            if diagnose:
+
+                with st.spinner(t("analyzing")):
+
+                    ai_result = (
+                        analyze_crop_image(
+                            process_image
                         )
+                    )
 
-                    if not ai_result:
+                # Mark sample diagnosis as completed (to clear state on next rerun)
+                if is_sample_diagnosis:
+                    st.session_state.sample_diagnose_completed = True
 
-                        st.error(
-                            "⚠️ Please upload a valid RGB leaf "
-                            "image — analysis could not be "
-                            "completed."
-                        )
+                if not ai_result:
+
+                    st.error(t("upload_valid_rgb"))
+
+                else:
+
+                    crop = ai_result["crop"]
+
+                    disease = ai_result["disease"]
+
+                    confidence = ai_result["confidence"]
+
+                    predicted_class = ai_result["class"]
+
+                    info = DISEASE_INFO.get(predicted_class)
+
+                    # Get top predictions for explanation
+                    top_predictions = get_top_predictions(
+                        model, process_image, class_names, top_n=5
+                    )
+
+                    # SAVE RESULT
+                    add_record(
+                        crop,
+                        disease,
+                        confidence,
+                        crop_id=diagnosis_crop_id
+                    )
+
+                    st.success(t("analysis_complete"))
+
+                    st.divider()
+
+                    # ---- VOICE FEEDBACK ----
+                    voice_html = get_voice_feedback_html(disease, confidence, crop)
+                    st.components.v1.html(voice_html, height=80)
+
+                    r1, r2, r3 = st.columns(3)
+
+                    with r1:
+                        st.metric(t("crop"), translate_crop_name(crop))
+
+                    with r2:
+                        st.metric(t("result"), disease)
+
+                    with r3:
+                        st.metric(t("confidence"), f"{confidence:.2f}%")
+
+                    st.divider()
+
+                    if info:
+
+                        st.subheader(t("description"))
+
+                        st.write(info["description"])
+
+                        st.subheader(t("symptoms"))
+
+                        for symptom in info["symptoms"]:
+                            st.write(f"• {symptom}")
+
+                        st.subheader(t("management"))
+
+                        for item in info["management"]:
+                            st.write(f"• {item}")
+
+                        st.subheader(t("prevention"))
+
+                        for item in info["prevention"]:
+                            st.write(f"• {item}")
 
                     else:
 
-                        crop = ai_result[
-                            "crop"
-                        ]
+                        st.warning(t("disease_info_not_available"))
 
-                        disease = ai_result[
-                            "disease"
-                        ]
+                    # ---- TREATMENT RECOMMENDATION ----
+                    # Skip treatment card for healthy predictions.
+                    if "healthy" not in predicted_class.lower():
+                        st.divider()
 
-                        confidence = ai_result[
-                            "confidence"
-                        ]
-
-                        predicted_class = (
-                            ai_result[
-                                "class"
-                            ]
+                        st.markdown(
+                            f"<h3 style='color:#2e7d32;'>💊 {t('treatment_recommendation')}</h3>",
+                            unsafe_allow_html=True
                         )
 
-                        info = (
-                            DISEASE_INFO.get(
-                                predicted_class
+                        treatment_info = get_treatment(predicted_class)
+
+                        if treatment_info:
+
+                            st.markdown(
+                                """
+                                <style>
+                                .treatment-card {
+                                    padding: 20px;
+                                    border-radius: 16px;
+                                    background: linear-gradient(135deg, #f1f8e9, #ffffff);
+                                    border: 1px solid #c5e1a5;
+                                    margin-bottom: 15px;
+                                }
+                                .treatment-row {
+                                    padding: 10px 0;
+                                    border-bottom: 1px solid #e0e0e0;
+                                }
+                                .treatment-row:last-child {
+                                    border-bottom: none;
+                                }
+                                .treatment-label {
+                                    font-weight: 600;
+                                    color: #33691e;
+                                    margin-bottom: 4px;
+                                }
+                                .treatment-value {
+                                    color: #424242;
+                                    font-size: 15px;
+                                }
+                                </style>
+                                """,
+                                unsafe_allow_html=True
                             )
-                        )
 
-                        # SAVE RESULT
+                            st.markdown(
+                                f"""
+                                <div class="treatment-card">
+                                    <div class="treatment-row">
+                                        <div class="treatment-label">🌿 {t("fertilizer_nutrient")}</div>
+                                        <div class="treatment-value">{treatment_info.get("fertilizer", "—")}</div>
+                                    </div>
+                                    <div class="treatment-row">
+                                        <div class="treatment-label">📏 {t("fertilizer_quantity")}</div>
+                                        <div class="treatment-value">{treatment_info.get("fertilizer_quantity", "—")}</div>
+                                    </div>
+                                    <div class="treatment-row">
+                                        <div class="treatment-label">🧪 {t("pesticide_treatment")}</div>
+                                        <div class="treatment-value">{treatment_info.get("pesticide", "—")}</div>
+                                    </div>
+                                    <div class="treatment-row">
+                                        <div class="treatment-label">📏 {t("pesticide_quantity")}</div>
+                                        <div class="treatment-value">{treatment_info.get("pesticide_quantity", "—")}</div>
+                                    </div>
+                                    <div class="treatment-row">
+                                        <div class="treatment-label">📝 {t("treatment_description")}</div>
+                                        <div class="treatment-value">{treatment_info.get("description", "—")}</div>
+                                    </div>
+                                </div>
+                                """,
+                                unsafe_allow_html=True
+                            )
 
-                        add_record(
-                            crop,
-                            disease,
+                        else:
+
+                            st.info(t("treatment_not_available"))
+
+                    # ---- AI EXPLANATION ----
+                    if top_predictions:
+                        render_ai_explanation(
+                            predicted_class,
                             confidence,
-                            crop_id=diagnosis_crop_id
+                            top_predictions,
+                            crop
                         )
 
-                        st.success(
-                            t("analysis_complete")
-                        )
-
-                        st.divider()
-
-                        r1, r2, r3 = (
-                            st.columns(3)
-                        )
-
-                        with r1:
-
-                            st.metric(
-                                "🌱 Crop",
-                                crop
-                            )
-
-                        with r2:
-
-                            st.metric(
-                                "🦠 Result",
-                                disease
-                            )
-
-                        with r3:
-
-                            st.metric(
-                                t("confidence"),
-                                f"{confidence:.2f}%"
-                            )
-
-                        st.divider()
-
-                        if info:
-
-                            st.subheader(
-                                "📋 Description"
-                            )
-
-                            st.write(
-                                info[
-                                    "description"
-                                ]
-                            )
-
-                            st.subheader(
-                                "🔍 Symptoms"
-                            )
-
-                            for symptom in (
-                                info[
-                                    "symptoms"
-                                ]
-                            ):
-
-                                st.write(
-                                    f"• {symptom}"
-                                )
-
-                            st.subheader(
-                                "🩺 Management"
-                            )
-
-                            for item in (
-                                info[
-                                    "management"
-                                ]
-                            ):
-
-                                st.write(
-                                    f"• {item}"
-                                )
-
-                            st.subheader(
-                                "🛡️ Prevention"
-                            )
-
-                            for item in (
-                                info[
-                                    "prevention"
-                                ]
-                            ):
-
-                                st.write(
-                                    f"• {item}"
-                                )
-
-                        else:
-
-                            st.warning(
-                                "Information for this "
-                                "disease is not available yet."
-                            )
-
-                        if confidence < 60:
-
-                            st.warning(
-                                "⚠️ Low confidence. "
-                                "Try a clearer leaf image."
-                            )
-
-                        else:
-
-                            st.info(
-                                "💡 For best results, "
-                                "use a clear image "
-                                "with good lighting."
-                            )
+                    # Low confidence warning
+                    if confidence < 60:
+                        st.warning(t("low_confidence"))
+                    else:
+                        st.info(t("best_results"))
 
 
 # =====================================================
@@ -2009,9 +2659,7 @@ elif page == "Monitoring":
     if not history:
 
         st.info(
-            "No monitoring data yet. "
-            "Diagnose a crop to create "
-            "your first record."
+            t("no_monitoring_data")
         )
 
     else:
@@ -2075,8 +2723,7 @@ elif page == "Monitoring":
         )
 
         st.caption(
-            "Confidence values from "
-            "recent diagnoses."
+            t("confidence_values_recent")
         )
 
         st.divider()
@@ -2118,6 +2765,7 @@ elif page == "Monitoring":
 
                     st.write(
                         f"🕒 "
+                        f"{t('monitoring_record_date')}: "
                         f"{record['date']}"
                     )
 
@@ -2125,13 +2773,15 @@ elif page == "Monitoring":
 
                     st.write(
                         f"🌱 "
-                        f"{record['crop']}"
+                        f"{t('monitoring_record_crop')}: "
+                        f"{translate_crop_name(record['crop'])}"
                     )
 
                 with c3:
 
                     st.write(
                         f"🦠 "
+                        f"{t('monitoring_record_disease')}: "
                         f"{record['disease']}"
                     )
 
@@ -2139,6 +2789,7 @@ elif page == "Monitoring":
 
                     st.write(
                         f"🎯 "
+                        f"{t('monitoring_record_confidence')}: "
                         f"{record['confidence']:.2f}%"
                     )
 
@@ -2147,8 +2798,11 @@ elif page == "Monitoring":
         ):
 
             if st.button(
-                f"Show more (showing {shown} of "
-                f"{len(ordered_history)})"
+                t(
+                    "show_more_monitoring",
+                    shown=shown,
+                    total=len(ordered_history)
+                )
             ):
 
                 st.session_state[
@@ -2159,9 +2813,45 @@ elif page == "Monitoring":
 
         st.divider()
 
+        # ---- DIAGNOSIS EXPORT ----
+        st.subheader(t("export_diagnosis_records"))
+
+        col_exp1, col_exp2 = st.columns(2)
+
+        with col_exp1:
+            csv_data = export_diagnosis_csv()
+            if csv_data:
+                st.download_button(
+                    t("download_diagnosis_csv"),
+                    csv_data.encode("utf-8"),
+                    file_name="crop_doctor_diagnoses.csv",
+                    mime="text/csv",
+                    use_container_width=True,
+                )
+            else:
+                st.info(t("no_diagnosis_records"))
+
+        with col_exp2:
+            raksha_csv = export_raksha_csv()
+            if raksha_csv:
+                st.download_button(
+                    t("download_raksha_csv"),
+                    raksha_csv.encode("utf-8"),
+                    file_name="crop_raksha_observations.csv",
+                    mime="text/csv",
+                    use_container_width=True,
+                )
+            else:
+                st.info(t("no_raksha_records"))
+
+        st.caption(
+            t("csv_share_note")
+        )
+
+        st.divider()
+
         confirm_clear = st.checkbox(
-            "I understand this will permanently delete all "
-            "diagnosis history."
+            t("clear_history_confirm")
         )
 
         if st.button(
@@ -2212,16 +2902,17 @@ elif page == "Disease Library":
             class_name
         )
 
-        disease = get_disease_name(
-            class_name
-        )
+        # Translate crop name and disease name for display
+        crop_display = translate_crop_name(crop)
+        disease_display = translate_disease_name(class_name)
 
-        info = DISEASE_INFO.get(
-            class_name
-        )
+        # Get translated disease info (description, symptoms, etc.)
+        # Falls back to English from DISEASE_INFO if no translation
+        # is available. Internal disease IDs are NOT modified.
+        info = get_translated_disease_info(class_name)
 
         with st.expander(
-            f"🌱 {crop} — 🦠 {disease}"
+            f"🌱 {crop_display} — 🦠 {disease_display}"
         ):
 
             if info:
@@ -2296,63 +2987,71 @@ elif page == "About":
     )
 
     st.write(
-        """
-        Crop Doctor is an AI-powered crop health
-        assistant designed to help identify crop
-        diseases from leaf images.
-        """
+        t("about_crop_doctor_description")
     )
 
     st.subheader(
-        translate_text("🤖 AI Detection")
+        t("ai_detection")
     )
 
     st.write(
-        """
-        A trained deep-learning model analyzes
-        uploaded crop leaf images and predicts
-        the most likely disease or healthy class.
-        """
+        t("about_ai_detection_desc")
     )
 
     st.subheader(
-        "🛡️ Crop Raksha"
+        t("about_crop_raksha")
     )
 
     st.write(
-        """
-        Crop Raksha monitors registered crops
-        through daily observations, remembers
-        previous observations and looks for
-        changes that may require attention.
-        """
+        t("about_crop_raksha_desc")
     )
 
     st.subheader(
-        translate_text("🔥 Visual Change Heatmap")
+        t("visual_change_heatmap_about")
     )
 
     st.write(
-        """
-        Crop Raksha compares consecutive crop
-        photographs and generates a visual
-        difference heatmap showing areas where
-        the crop image has changed.
-        """
+        t("about_visual_change_desc")
     )
 
     st.subheader(
-        translate_text("📊 Daily Monitoring")
+        t("daily_monitoring_about")
     )
 
     st.write(
-        """
-        Diagnosis results and Crop Raksha
-        observations are stored locally,
-        allowing users to track crop health
-        over multiple observations.
-        """
+        t("about_daily_monitoring_desc")
     )
+
+    st.subheader(t("about_sih_title"))
+    st.success(f"""
+    {t("about_sih_why_crop_doctor_wins")}
+
+    {t("about_sih_real_farmer_value")}
+
+    {t("about_sih_multilingual")}
+
+    {t("about_sih_voice_first")}
+
+    {t("about_sih_offline_first")}
+
+    {t("about_sih_time_aware")}
+
+    {t("about_sih_honest_ai")}
+
+    {t("about_sih_exportable")}
+
+    {t("about_sih_production_grade")}
+    """)
+
+    st.subheader(t("about_tech_stack"))
+    st.markdown(f"""
+    {t("about_tech_ai_model")}
+    {t("about_tech_ui")}
+    {t("about_tech_voice_ivr")}
+    {t("about_tech_image")}
+    {t("about_tech_languages")}
+    {t("about_tech_storage")}
+    """)
 
     st.subheader(
         t("supported_crops")
@@ -2366,11 +3065,11 @@ elif page == "About":
     ):
 
         st.write(
-            f"• {crop}"
+            f"• {translate_crop_name(crop)}"
         )
 
     st.divider()
 
     st.caption(
-        "🌱 Crop Doctor — " + translate_text("AI-assisted crop health monitoring")
+        t("app_name") + " — " + translate_text("AI-assisted crop health monitoring")
     )

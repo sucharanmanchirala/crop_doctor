@@ -237,8 +237,7 @@ DISEASE_INFO = {
         ]
     },
 
-    # NOTE: exact spelling matches your class_names.json
-    "cotton_fussarium_wilt": {
+    "cotton_fusarium_wilt": {
         "crop": "Cotton",
         "disease": "Fusarium Wilt",
         "description": "A soil-borne fungal disease that affects the vascular system of cotton plants.",
@@ -354,8 +353,7 @@ DISEASE_INFO = {
         ]
     },
 
-    # NOTE: exact spelling matches your class_names.json
-    "grape_isaporiopsis_leaf_spot": {
+    "grape_isariopsis_leaf_spot": {
         "crop": "Grape",
         "disease": "Isariopsis Leaf Spot",
         "description": "A fungal leaf-spot disease that can cause dark lesions on grape leaves.",

@@ -1,5 +1,68 @@
 import streamlit as st
 from datetime import datetime
+import os as _os
+from PIL import Image as _Image
+
+from crop_comparison_view import render_comparison_viewer
+from language import t
+
+
+# =====================================================
+# CROP RAKSHA INTELLIGENT INSIGHTS
+# =====================================================
+
+def _get_raksha_insights(records, crop_name, farmer_name):
+    """Generate natural-language insights from Crop Raksha observations."""
+    if not records:
+        return None
+
+    ordered = sorted(records, key=lambda x: x.get("day", 0))
+
+    diseases = [r.get("disease", "") for r in ordered]
+    statuses = [r.get("status", "unknown") for r in ordered]
+    healthy_count = sum(1 for d in diseases if d.lower() == "healthy")
+    total = len(ordered)
+
+    if total == 1:
+        trend = "just_started"
+    elif any("significant_change" in s for s in statuses[-2:]) or (
+            any(d.lower() != "healthy" for d in diseases[-2:])
+            and ordered[-1].get("confidence", 0) >= 60
+    ):
+        trend = "alert"
+    elif "minor_change" in statuses[-1:]:
+        trend = "watch"
+    else:
+        trend = "stable"
+
+    if ordered:
+        latest_date = ordered[-1].get("date", "")
+        if latest_date:
+            try:
+                last_dt = datetime.strptime(latest_date, "%Y-%m-%d %H:%M")
+                days_ago = (datetime.now() - last_dt).days
+                if days_ago == 0:
+                    time_text = t("raksha_today")
+                elif days_ago == 1:
+                    time_text = t("raksha_yesterday")
+                else:
+                    time_text = t("raksha_days_ago", n=days_ago)
+                time_text = t("raksha_last_observation_time", time=time_text, date=latest_date)
+            except Exception:
+                time_text = t("raksha_last_observation_only", date=latest_date)
+        else:
+            time_text = t("raksha_no_date")
+    else:
+        time_text = t("raksha_no_observations")
+
+    return {
+        "trend": trend,
+        "time_text": time_text,
+        "healthy_count": healthy_count,
+        "total_observations": total,
+        "latest_disease": diseases[-1] if diseases else None,
+        "latest_confidence": ordered[-1].get("confidence", 0) if ordered else 0,
+    }
 
 
 # =====================================================
@@ -333,7 +396,7 @@ def _get_previous(records):
 
 def _format_record(record):
     if not record:
-        return "No observation available."
+        return t("raksha_no_observation_available")
 
     disease = record.get(
         "disease",
@@ -356,10 +419,10 @@ def _format_record(record):
     )
 
     return (
-        f"📅 Day {day}\n"
-        f"🦠 AI result: **{disease}**\n"
-        f"🎯 Confidence: **{confidence:.1f}%**\n"
-        f"📊 Visual status: **{status}**"
+        f"📅 {t('raksha_day')} {day}\n"
+        f"🦠 {t('raksha_result_label')}: **{disease}**\n"
+        f"🎯 {t('raksha_confidence_label')}: **{confidence:.1f}%**\n"
+        f"📊 {t('raksha_visual_status')}: **{status}**"
     )
 
 
@@ -1591,8 +1654,13 @@ def render_crop_raksha_chat(
 ):
     """
     Display the interactive Crop Raksha
-    conversational companion.
+    conversational companion with intelligent insights
+    and before/after comparison viewer.
     """
+
+    crop_name = crop.get("crop_name", "your crop")
+    farmer_name = crop.get("farmer_name", "Farmer")
+    current_crop_id = crop.get("id")
 
     # -------------------------------------------------
     # SESSION STATE
@@ -1608,10 +1676,6 @@ def render_crop_raksha_chat(
     # RESET WHEN CROP CHANGES
     # -------------------------------------------------
 
-    current_crop_id = crop.get(
-        "id"
-    )
-
     if (
             "raksha_crop_id"
             not in st.session_state
@@ -1624,6 +1688,113 @@ def render_crop_raksha_chat(
         st.session_state.raksha_crop_id = (
             current_crop_id
         )
+
+    # -------------------------------------------------
+    # INTELLIGENT INSIGHTS (NEW)
+    # -------------------------------------------------
+
+    insights = _get_raksha_insights(records, crop_name, farmer_name)
+
+    if insights and insights.get("total_observations", 0) > 0:
+
+        st.divider()
+
+        trend = insights["trend"]
+        trend_color = {
+            "stable": ("#16a34a", "🟢"),
+            "watch": ("#d97706", "🟠"),
+            "alert": ("#dc2626", "🔴"),
+            "just_started": ("#2563eb", "🌱"),
+        }.get(trend, ("#6b7280", "⚪"))
+
+        trend_bg = {
+            "stable": ("#f0fdf4", "#dcfce7"),
+            "watch": ("#fffbeb", "#fef3c7"),
+            "alert": ("#fef2f2", "#fee2e2"),
+            "just_started": ("#eff6ff", "#dbeafe"),
+        }.get(trend, ("#f9fafb", "#f3f4f6"))
+
+        if trend == "just_started":
+            trend_text = (
+                f"🌱 **Your Crop Raksha journey has just begun!** "
+                f"Upload today's crop photograph to create the first observation. "
+                f"Daily monitoring builds a health timeline over time."
+            )
+        elif trend == "stable":
+            trend_text = (
+                f"✅ **Great progress, {farmer_name}!** "
+                f"*{crop_name}* shows no significant visual changes "
+                f"across {insights['total_observations']} daily observations. "
+                f"AI results: {insights['healthy_count']}/{insights['total_observations']} days — Healthy. "
+                f"Keep up the daily routine!"
+            )
+        elif trend == "watch":
+            trend_text = (
+                f"👀 **Minor change detected in {farmer_name}'s {crop_name}.** "
+                f"A small visual difference was noticed. "
+                f"This doesn't mean disease — continue daily monitoring. "
+                f"{insights['total_observations']} observations recorded so far."
+            )
+        else:  # alert
+            trend_text = (
+                f"🚨 **Attention needed for {farmer_name}'s {crop_name}!** "
+                f"Recent observations show significant visual change or a detected issue. "
+                f"Review the latest AI result and consider Crop Diagnosis "
+                f"for a deeper assessment."
+            )
+
+        st.markdown(f"""
+        <div style="
+            background: linear-gradient(135deg, {trend_bg[0]}, {trend_bg[1]});
+            border: 1.5px solid {trend_color[0]};
+            border-radius: 12px;
+            padding: 16px;
+            margin: 8px 0;
+        ">
+            <div style="color: {trend_color[0]}; font-size: 13px; font-weight: bold; margin-bottom: 6px;">
+                {trend_color[1]} {t("raksha_insight_summary")}
+            </div>
+            <div style="color: #374151; font-size: 14px; line-height: 1.6;">
+                {trend_text}
+            </div>
+            <div style="color: #6b7280; font-size: 11px; margin-top: 8px;">
+                {insights["time_text"]}
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    # -------------------------------------------------
+    # BEFORE/AFTER COMPARISON VIEWER (NEW)
+    # -------------------------------------------------
+
+    valid_records_for_compare = [
+        r for r in records
+        if r.get("image_path") and _os.path.exists(r["image_path"])
+    ]
+
+    if len(valid_records_for_compare) >= 2:
+
+        st.divider()
+
+        compare_key = f"show_compare_{current_crop_id}"
+
+        if compare_key not in st.session_state:
+            st.session_state[compare_key] = False
+
+        if st.button(
+            t("before_after_comparison") if not st.session_state[compare_key] else t("hide_comparison"),
+            use_container_width=True,
+            key=f"compare_toggle_{current_crop_id}"
+        ):
+            st.session_state[compare_key] = not st.session_state[compare_key]
+            st.rerun()
+
+        if st.session_state[compare_key]:
+            st.markdown(f"""
+            #### {t("raksha_compare_pick_days")}
+            {t("raksha_compare_instructions")}
+            """)
+            render_comparison_viewer(valid_records_for_compare, current_crop_id)
 
     # -------------------------------------------------
     # FIRST MESSAGE
@@ -1663,7 +1834,7 @@ def render_crop_raksha_chat(
     # -------------------------------------------------
 
     user_message = st.chat_input(
-        "💬 Talk to Crop Raksha..."
+        t("raksha_talk_placeholder")
     )
 
     if user_message:

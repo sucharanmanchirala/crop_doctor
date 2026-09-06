@@ -5,5 +5,82 @@
         "disease": "Healthy",
         "confidence": 84.88,
         "crop_id": null
+    },
+    {
+        "date": "2026-09-04 16:41",
+        "crop": "Cotton",
+        "disease": "Fusarium Wilt",
+        "confidence": 58.49,
+        "crop_id": null
+    },
+    {
+        "date": "2026-09-04 16:41",
+        "crop": "Banana",
+        "disease": "Pestalotiopsis Leaf Spot",
+        "confidence": 98.87,
+        "crop_id": null
+    },
+    {
+        "date": "2026-09-05 22:21",
+        "crop": "Banana",
+        "disease": "Pestalotiopsis Leaf Spot",
+        "confidence": 98.87,
+        "crop_id": null
+    },
+    {
+        "date": "2026-09-05 22:23",
+        "crop": "Banana",
+        "disease": "Sigatoka Leaf Spot",
+        "confidence": 99.97,
+        "crop_id": null
+    },
+    {
+        "date": "2026-09-05 22:31",
+        "crop": "Soybean",
+        "disease": "Diabrotica speciosa Damage",
+        "confidence": 97.6,
+        "crop_id": null
+    },
+    {
+        "date": "2026-09-06 11:30",
+        "crop": "Tomato",
+        "disease": "Bacterial Spot",
+        "confidence": 72.18,
+        "crop_id": null
+    },
+    {
+        "date": "2026-09-06 11:30",
+        "crop": "Tomato",
+        "disease": "Bacterial Spot",
+        "confidence": 34.95,
+        "crop_id": null
+    },
+    {
+        "date": "2026-09-06 11:41",
+        "crop": "Soybean",
+        "disease": "Caterpillar Damage",
+        "confidence": 96.53,
+        "crop_id": null
+    },
+    {
+        "date": "2026-09-06 12:22",
+        "crop": "Banana",
+        "disease": "Healthy",
+        "confidence": 100.0,
+        "crop_id": null
+    },
+    {
+        "date": "2026-09-06 12:29",
+        "crop": "Cotton",
+        "disease": "Bacterial Blight",
+        "confidence": 86.56,
+        "crop_id": null
+    },
+    {
+        "date": "2026-09-06 12:39",
+        "crop": "Paddy",
+        "disease": "Bacterial Leaf Blight",
+        "confidence": 98.72,
+        "crop_id": null
     }
 ]

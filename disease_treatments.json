@@ -1,0 +1,268 @@
+{
+    "banana_cordana": {
+        "fertilizer": "NPK 14-14-14 with extra potassium",
+        "fertilizer_quantity": "200 g per plant, applied every 2 months",
+        "pesticide": "Mancozeb (75% WP) fungicide",
+        "pesticide_quantity": "2.5 g per litre of water; spray every 10–14 days",
+        "description": "Cordana leaf spot is a fungal disease. Remove affected leaves, improve field sanitation, and apply a recommended fungicide to control spread."
+    },
+    "banana_healthy": {
+        "fertilizer": "NPK 8-10-8 with organic compost",
+        "fertilizer_quantity": "150–200 g per plant every 6–8 weeks",
+        "pesticide": "No pesticide required — preventive neem oil only",
+        "pesticide_quantity": "5 ml neem oil per litre of water, monthly",
+        "description": "Banana plant is healthy. Continue balanced fertilization, regular irrigation, and routine field monitoring to maintain plant health."
+    },
+    "banana_pestalotiopsis": {
+        "fertilizer": "NPK 15-5-30 (high potassium)",
+        "fertilizer_quantity": "250 g per plant, monthly",
+        "pesticide": "Copper oxychloride (50% WP)",
+        "pesticide_quantity": "3 g per litre of water; spray every 10 days",
+        "description": "Pestalotiopsis causes necrotic leaf spots. Remove infected leaves, avoid overhead irrigation, and apply copper-based fungicide at first sign."
+    },
+    "banana_sigatoka": {
+        "fertilizer": "NPK 17-6-18 with magnesium",
+        "fertilizer_quantity": "300 g per plant every 2 months",
+        "pesticide": "Propiconazole (25% EC) or Mancozeb",
+        "pesticide_quantity": "1 ml propiconazole per litre, every 14 days",
+        "description": "Sigatoka is a serious fungal leaf disease. Use resistant varieties, prune infected leaves, and follow a regular fungicide spray schedule."
+    },
+    "corn_common_rust": {
+        "fertilizer": "NPK 20-10-10 with nitrogen top-dressing",
+        "fertilizer_quantity": "120 kg N per hectare, split in 2 doses",
+        "pesticide": "Mancozeb (75% WP) or Azoxystrobin",
+        "pesticide_quantity": "2.5 g mancozeb per litre, every 10–14 days",
+        "description": "Common rust produces reddish-brown pustules on leaves. Use resistant hybrids, balanced nitrogen, and foliar fungicide if infection is severe."
+    },
+    "corn_gray_leaf_spot": {
+        "fertilizer": "NPK 15-15-15 with potash boost",
+        "fertilizer_quantity": "100 kg N, 60 kg P2O5, 80 kg K2O per hectare",
+        "pesticide": "Azoxystrobin + Propiconazole (combination)",
+        "pesticide_quantity": "1 ml per litre of water, every 14 days",
+        "description": "Gray leaf spot is favoured by continuous corn. Rotate crops, bury residue, and apply foliar fungicide at tasseling if disease pressure is high."
+    },
+    "corn_healthy": {
+        "fertilizer": "NPK 12-32-16 at sowing + urea top-dress",
+        "fertilizer_quantity": "120 kg N, 60 kg P2O5, 40 kg K2O per hectare",
+        "pesticide": "No pesticide required — preventive care only",
+        "pesticide_quantity": "Not applicable",
+        "description": "Corn crop is healthy. Maintain balanced nutrition, weed control, and monitor regularly for any early signs of disease or pest attack."
+    },
+    "corn_northern_leaf_blight": {
+        "fertilizer": "NPK 20-20-20 with extra nitrogen",
+        "fertilizer_quantity": "150 kg N per hectare in split applications",
+        "pesticide": "Mancozeb or Propiconazole",
+        "pesticide_quantity": "2.5 g mancozeb per litre, every 10–14 days",
+        "description": "Northern leaf blight causes long cigar-shaped lesions. Use resistant hybrids, crop rotation, and timely fungicide sprays at early disease onset."
+    },
+    "cotton_bacterial_blight": {
+        "fertilizer": "NPK 19-19-19 with potassium for disease resistance",
+        "fertilizer_quantity": "100 kg N, 50 kg P2O5, 50 kg K2O per hectare",
+        "pesticide": "Copper oxychloride + Streptocycline",
+        "pesticide_quantity": "3 g copper + 0.5 g streptocycline per 10 litres water",
+        "description": "Bacterial blight is seed-borne. Use disease-free certified seed, treat seed with hot water, and spray copper-based bactericide at first symptoms."
+    },
+    "cotton_cotton_leaf_curl": {
+        "fertilizer": "NPK 17-17-17 with micronutrient mix (Zn, B)",
+        "fertilizer_quantity": "120 kg N, 60 kg P2O5, 60 kg K2O per hectare",
+        "pesticide": "Imidacloprid (17.8% SL) for whitefly control",
+        "pesticide_quantity": "0.5 ml per litre for sucking pest vector control",
+        "description": "Cotton leaf curl virus is transmitted by whitefly. Control vector with imidacloprid, remove infected plants, and use virus-resistant varieties."
+    },
+    "cotton_fusarium_wilt": {
+        "fertilizer": "NPK 14-35-14 with Trichoderma-enriched FYM",
+        "fertilizer_quantity": "90 kg N, 60 kg P2O5, 60 kg K2O per hectare",
+        "pesticide": "Carbendazim (50% WP) soil drench",
+        "pesticide_quantity": "1 g carbendazim per litre, drench at root zone",
+        "description": "Fusarium wilt is a soil-borne fungus. Use resistant varieties, treat seed with carbendazim, and practice long crop rotation with non-host crops."
+    },
+    "cotton_healthy": {
+        "fertilizer": "NPK 19-19-19 with foliar zinc spray",
+        "fertilizer_quantity": "120 kg N, 60 kg P2O5, 60 kg K2O per hectare",
+        "pesticide": "No pesticide required — preventive IPM only",
+        "pesticide_quantity": "Not applicable",
+        "description": "Cotton crop is healthy. Continue balanced fertilization, regular pest scouting, and follow IPM practices to keep the crop in good condition."
+    },
+    "grape_black_measles": {
+        "fertilizer": "NPK 10-10-10 with calcium and boron",
+        "fertilizer_quantity": "500 g per vine in 2 split doses",
+        "pesticide": "Mancozeb (75% WP) or Captan",
+        "pesticide_quantity": "2.5 g per litre, every 10–14 days",
+        "description": "Black measles affects canes and fruit. Prune infected wood, destroy debris, and apply protectant fungicide during the early growing season."
+    },
+    "grape_black_rot": {
+        "fertilizer": "NPK 12-12-17 with magnesium",
+        "fertilizer_quantity": "400 g per vine, split in 2 applications",
+        "pesticide": "Mancozeb or Myclobutanil",
+        "pesticide_quantity": "2 g myclobutanil per litre, every 14 days",
+        "description": "Black rot damages grapes and leaves. Remove mummified fruit, prune for airflow, and apply fungicide at 7–14 day intervals during humid weather."
+    },
+    "grape_healthy": {
+        "fertilizer": "NPK 8-8-8 with organic compost",
+        "fertilizer_quantity": "300–500 g per vine per season",
+        "pesticide": "No pesticide required — preventive neem oil only",
+        "pesticide_quantity": "5 ml neem oil per litre, monthly",
+        "description": "Grapevine is healthy. Continue regular pruning, balanced nutrition, and monitor for early signs of fungal disease, especially in humid weather."
+    },
+    "grape_isariopsis_leaf_spot": {
+        "fertilizer": "NPK 14-14-21 with micronutrients",
+        "fertilizer_quantity": "400 g per vine, in 2 splits",
+        "pesticide": "Carbendazim (50% WP)",
+        "pesticide_quantity": "1 g per litre, every 10–14 days",
+        "description": "Isariopsis leaf spot causes angular brown lesions. Improve canopy airflow, remove infected leaves, and apply carbendazim at recommended intervals."
+    },
+    "mango_anthracnose": {
+        "fertilizer": "NPK 10-10-10 with potassium and calcium",
+        "fertilizer_quantity": "1–2 kg per tree per year, split in 2 doses",
+        "pesticide": "Carbendazim (50% WP) or Copper oxychloride",
+        "pesticide_quantity": "1 g carbendazim per litre, every 14 days",
+        "description": "Anthracnose causes black spots on leaves and fruit. Prune dead twigs, harvest carefully, and apply fungicide during flowering and fruit development."
+    },
+    "mango_bacterial_canker": {
+        "fertilizer": "NPK 14-14-14 with copper nutrition",
+        "fertilizer_quantity": "1.5 kg per tree, in 2 splits",
+        "pesticide": "Copper oxychloride (50% WP) + Streptocycline",
+        "pesticide_quantity": "3 g copper + 0.5 g streptocycline per 10 litres",
+        "description": "Bacterial canker affects leaves and twigs. Use disease-free planting material, avoid wounding, and apply copper-based bactericide during monsoon."
+    },
+    "mango_healthy": {
+        "fertilizer": "NPK 8-8-8 with organic FYM",
+        "fertilizer_quantity": "1–2 kg per tree annually",
+        "pesticide": "No pesticide required — preventive neem oil only",
+        "pesticide_quantity": "5 ml neem oil per litre, monthly",
+        "description": "Mango tree is healthy. Continue regular manuring, mulching, and routine inspection for any pest or disease symptoms on leaves and fruit."
+    },
+    "mango_powdery_mildew": {
+        "fertilizer": "NPK 12-12-17 with sulphur",
+        "fertilizer_quantity": "1.5 kg per tree per year",
+        "pesticide": "Sulphur (80% WP) or Hexaconazole",
+        "pesticide_quantity": "3 g sulphur per litre, every 10 days during flowering",
+        "description": "Powdery mildew affects inflorescences and young fruit. Spray sulphur at panicle emergence and repeat at 10-day intervals during flowering."
+    },
+    "paddy_bacterial_leaf_blight": {
+        "fertilizer": "NPK 20-10-10 with reduced nitrogen at tillering",
+        "fertilizer_quantity": "100 kg N, 50 kg P2O5, 50 kg K2O per hectare",
+        "pesticide": "Copper hydroxide (77% WP) + Streptocycline",
+        "pesticide_quantity": "2 g copper + 0.5 g streptocycline per 10 litres water",
+        "description": "Bacterial leaf blight spreads in flooded, humid fields. Drain excess water, avoid excess nitrogen, and apply copper-based bactericide at first sign."
+    },
+    "paddy_brown_spot": {
+        "fertilizer": "NPK 15-15-15 with extra potassium",
+        "fertilizer_quantity": "120 kg N, 60 kg P2O5, 60 kg K2O per hectare",
+        "pesticide": "Mancozeb (75% WP) or Iprodione",
+        "pesticide_quantity": "2.5 g mancozeb per litre, every 10–14 days",
+        "description": "Brown spot is associated with nutrient deficiency. Apply balanced NPK with potash, treat seed with carbendazim, and foliar spray mancozeb if needed."
+    },
+    "paddy_healthy": {
+        "fertilizer": "NPK 20-10-10 with urea top-dressing",
+        "fertilizer_quantity": "120 kg N, 60 kg P2O5, 40 kg K2O per hectare",
+        "pesticide": "No pesticide required — preventive IPM only",
+        "pesticide_quantity": "Not applicable",
+        "description": "Paddy crop is healthy. Maintain proper water management, balanced fertilization, and continue routine pest and disease scouting in the field."
+    },
+    "paddy_leaf_blast": {
+        "fertilizer": "NPK 18-12-18 with reduced nitrogen",
+        "fertilizer_quantity": "100 kg N, 50 kg P2O5, 50 kg K2O per hectare",
+        "pesticide": "Tricyclazole (75% WP) or Isoprothiolane",
+        "pesticide_quantity": "0.6 g tricyclazole per litre, every 10–14 days",
+        "description": "Leaf blast causes diamond-shaped lesions. Use resistant varieties, avoid excess nitrogen, maintain field drainage, and spray tricyclazole at early infection."
+    },
+    "potato_early_blight": {
+        "fertilizer": "NPK 15-15-15 with extra potassium",
+        "fertilizer_quantity": "180 kg N, 100 kg P2O5, 120 kg K2O per hectare",
+        "pesticide": "Mancozeb (75% WP) or Chlorothalonil",
+        "pesticide_quantity": "2.5 g mancozeb per litre, every 10–14 days",
+        "description": "Early blight causes dark concentric spots on lower leaves. Maintain adequate nitrogen and potash, hill properly, and apply protectant fungicide at 10–14 day intervals."
+    },
+    "potato_healthy": {
+        "fertilizer": "NPK 19-19-19 with calcium and magnesium",
+        "fertilizer_quantity": "180 kg N, 100 kg P2O5, 120 kg K2O per hectare",
+        "pesticide": "No pesticide required — preventive care only",
+        "pesticide_quantity": "Not applicable",
+        "description": "Potato crop is healthy. Continue balanced fertilization, regular irrigation, and routine inspection for any early signs of late blight or insect attack."
+    },
+    "potato_late_blight": {
+        "fertilizer": "NPK 15-15-15 with extra potassium and calcium",
+        "fertilizer_quantity": "180 kg N, 100 kg P2O5, 150 kg K2O per hectare",
+        "pesticide": "Metalaxyl + Mancozeb (combination) or Cymoxanil",
+        "pesticide_quantity": "2.5 g metalaxyl-mancozeb per litre, every 7–10 days",
+        "description": "Late blight is devastating in cool, wet weather. Use certified disease-free seed, destroy cull piles, and apply systemic fungicide at first sign of infection."
+    },
+    "soybean_caterpillar": {
+        "fertilizer": "NPK 20-26-26 with rhizobium seed treatment",
+        "fertilizer_quantity": "25 kg N, 60 kg P2O5, 40 kg K2O per hectare",
+        "pesticide": "Emamectin benzoate (5% SG) or Bt biopesticide",
+        "pesticide_quantity": "0.4 g emamectin per litre, every 10 days",
+        "description": "Caterpillars defoliate soybean leaves. Install pheromone traps, spray Bt or emamectin benzoate at economic threshold level, and conserve natural enemies."
+    },
+    "soybean_diabrotica_speciosa": {
+        "fertilizer": "NPK 20-26-26 with sulphur",
+        "fertilizer_quantity": "25 kg N, 60 kg P2O5, 40 kg K2O per hectare",
+        "pesticide": "Imidacloprid (17.8% SL) or Thiamethoxam",
+        "pesticide_quantity": "0.5 ml imidacloprid per litre, spray at ETL",
+        "description": "Diabrotica beetles feed on soybean leaves. Use seed treatment with imidacloprid, rotate with non-host crops, and apply foliar spray if beetle count exceeds threshold."
+    },
+    "soybean_healthy": {
+        "fertilizer": "NPK 20-26-26 with rhizobium culture",
+        "fertilizer_quantity": "25 kg N, 60 kg P2O5, 40 kg K2O per hectare",
+        "pesticide": "No pesticide required — preventive care only",
+        "pesticide_quantity": "Not applicable",
+        "description": "Soybean crop is healthy. Maintain rhizobium nodulation, balanced nutrition, and monitor regularly for any pest or disease pressure in the field."
+    },
+    "tomato_bacterial_spot": {
+        "fertilizer": "NPK 15-15-15 with extra potassium and calcium",
+        "fertilizer_quantity": "120 kg N, 80 kg P2O5, 100 kg K2O per hectare",
+        "pesticide": "Copper hydroxide + Streptocycline",
+        "pesticide_quantity": "2 g copper + 0.5 g streptocycline per 10 litres water",
+        "description": "Bacterial spot spreads in warm, wet conditions. Use certified disease-free seed, avoid overhead irrigation, and apply copper-based bactericide at first symptoms."
+    },
+    "tomato_early_blight": {
+        "fertilizer": "NPK 15-15-15 with extra potassium",
+        "fertilizer_quantity": "120 kg N, 80 kg P2O5, 100 kg K2O per hectare",
+        "pesticide": "Mancozeb (75% WP) or Chlorothalonil",
+        "pesticide_quantity": "2.5 g mancozeb per litre, every 10–14 days",
+        "description": "Early blight causes dark concentric rings on lower leaves. Mulch the soil, stake plants, prune lower leaves, and apply protectant fungicide at 10–14 day intervals."
+    },
+    "tomato_healthy": {
+        "fertilizer": "NPK 19-19-19 with calcium and boron",
+        "fertilizer_quantity": "120 kg N, 80 kg P2O5, 100 kg K2O per hectare",
+        "pesticide": "No pesticide required — preventive neem oil only",
+        "pesticide_quantity": "5 ml neem oil per litre, bi-weekly",
+        "description": "Tomato plant is healthy. Continue balanced fertilization with calcium for fruit quality, regular staking, and routine inspection for any pest or disease."
+    },
+    "tomato_late_blight": {
+        "fertilizer": "NPK 15-15-15 with extra potassium and calcium",
+        "fertilizer_quantity": "120 kg N, 80 kg P2O5, 120 kg K2O per hectare",
+        "pesticide": "Metalaxyl + Mancozeb (72% WP) or Cymoxanil",
+        "pesticide_quantity": "2.5 g metalaxyl-mancozeb per litre, every 7–10 days",
+        "description": "Late blight is a serious tomato disease. Destroy infected plants, avoid overhead irrigation, improve airflow, and spray systemic fungicide at first sign of disease."
+    },
+    "wheat_healthy": {
+        "fertilizer": "NPK 12-32-16 at sowing + urea top-dress",
+        "fertilizer_quantity": "120 kg N, 60 kg P2O5, 40 kg K2O per hectare",
+        "pesticide": "No pesticide required — preventive IPM only",
+        "pesticide_quantity": "Not applicable",
+        "description": "Wheat crop is healthy. Continue timely irrigation at critical stages, balanced nitrogen application, and routine monitoring for rust or aphid attack."
+    },
+    "wheat_mildew": {
+        "fertilizer": "NPK 15-15-15 with reduced nitrogen and extra potash",
+        "fertilizer_quantity": "100 kg N, 60 kg P2O5, 60 kg K2O per hectare",
+        "pesticide": "Sulphur (80% WP) or Propiconazole",
+        "pesticide_quantity": "3 g sulphur per litre, every 10–14 days",
+        "description": "Powdery mildew appears as white powdery patches. Avoid excess nitrogen, use resistant varieties, and spray sulphur or propiconazole at first sign of disease."
+    },
+    "wheat_septoria": {
+        "fertilizer": "NPK 15-15-15 with extra potassium",
+        "fertilizer_quantity": "120 kg N, 60 kg P2O5, 60 kg K2O per hectare",
+        "pesticide": "Chlorothalonil or Propiconazole",
+        "pesticide_quantity": "1 ml propiconazole per litre, every 14 days",
+        "description": "Septoria causes small brown spots with yellow halos. Bury crop residue, rotate crops, and apply foliar fungicide at early flowering for best control."
+    },
+    "wheat_yellowrust": {
+        "fertilizer": "NPK 15-15-15 with extra potassium",
+        "fertilizer_quantity": "120 kg N, 60 kg P2O5, 60 kg K2O per hectare",
+        "pesticide": "Propiconazole (25% EC) or Tebuconazole",
+        "pesticide_quantity": "1 ml propiconazole per litre, every 14 days",
+        "description": "Yellow rust appears as yellow stripes on leaves. Plant resistant varieties, monitor at tillering stage, and spray triazole fungicide at first appearance of pustules."
+    }
+}

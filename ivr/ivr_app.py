@@ -2478,13 +2478,12 @@ function findVoice(langCode) {
 // components.html uses srcdoc — window.location.href === "about:blank"
 // so we cannot fetch from it.  Instead we navigate window.parent.location
 // (same-origin Streamlit page URL) which triggers a Python rerun.
-// Python writes audio to sessionStorage; the next iframe load reads it.
+// Python embeds the base64 MP3 audio as window.__TTS_DATA__ in the
+// response HTML.  This file reads it synchronously on page load,
+// verifies the session ID, and plays the audio.
 let ttsAudio = null;
-let ttsNavSid = 0;          // sessionId that started the last navigation
-let ttsLoaded = false;       // true when sessionStorage audio is ready
-let ttsLoadedSid = 0;       // sid of the loaded audio
-let ttsNavSidCheck = null;  // setTimeout handle for the polling loop
-let originalPageUrl = "";    // saved pre-navigation URL for returning
+let ttsNavSid = 0;       // sessionId that started the last navigation
+let originalPageUrl = ""; // saved pre-navigation URL for returning
 
 function cancelOnlineTTS() {
     if (ttsAudio) {
@@ -2492,46 +2491,22 @@ function cancelOnlineTTS() {
         ttsAudio.src = "";
         ttsAudio = null;
     }
-    // Clear pending navigation check
-    if (ttsNavSidCheck !== null) {
-        clearTimeout(ttsNavSidCheck);
-        ttsNavSidCheck = null;
-    }
-    ttsLoaded = false;
-    ttsLoadedSid = 0;
+    ttsNavSid = 0;
 }
 
-// Called when the iframe's srcdoc finishes loading.
-// Checks whether the parent wrote TTS data for our session.
-function checkTtsLoaded() {
+// Called from window.onload — checks whether Python left TTS data
+// in window.__TTS_DATA__ for our session.  Runs synchronously so
+// the audio plays immediately when the page loads.
+function checkTtsData() {
     const sid = ttsNavSid;
-    if (sid !== sessionId || !sessionActive) {
-        ttsLoaded = false;
-        return;
-    }
-    try {
-        const loadedSid = window.parent.sessionStorage.getItem("TTS_LOADED");
-        if (loadedSid && String(loadedSid) === String(sid)) {
-            const raw = window.parent.sessionStorage.getItem("TTS_" + sid);
-            if (raw) {
-                let data;
-                try { data = JSON.parse(raw); } catch(e) { data = null; }
-                if (data && String(data.sid) === String(sid)) {
-                    // Valid audio for this session — decode and play
-                    ttsLoaded = true;
-                    ttsLoadedSid = sid;
-                    window.parent.sessionStorage.removeItem("TTS_" + sid);
-                    window.parent.sessionStorage.removeItem("TTS_LOADED");
-                    playOnlineAudio(data.audio, sid);
-                    return;
-                }
-            }
-        }
-    } catch(e) {
-        // sessionStorage not accessible (cross-origin) — ignore
-    }
-    // Not loaded yet — check again in 200ms (max 25 attempts = 5s)
-    ttsNavSidCheck = setTimeout(function() { checkTtsLoaded(); }, 200);
+    if (sid !== sessionId || !sessionActive) return;
+    const raw = window.__TTS_DATA__;
+    if (!raw) return;
+    // Verify SID matches the session that requested this audio
+    if (String(raw.sid) !== String(sid)) return;
+    // Consume and clear — one-shot
+    delete window.__TTS_DATA__;
+    playOnlineAudio(raw.audio, sid);
 }
 
 function playOnlineAudio(b64Audio, sid) {
@@ -2625,7 +2600,8 @@ function speak(text) {
     // ── No browser voice (te, mr) — navigate parent for TTS ─
     // components.html iframe is srcdoc (about:blank).  We navigate
     // window.parent.location to a TTS URL, triggering a Python rerun.
-    // Python writes base64 audio to sessionStorage; we poll and play.
+    // Python embeds the base64 MP3 as window.__TTS_DATA__ in the
+    // response HTML.  checkTtsData() reads it synchronously on page load.
     if (language !== "te" && language !== "mr") {
         return false;
     }
@@ -2644,28 +2620,14 @@ function speak(text) {
     // Remember where we need to return to
     originalPageUrl = window.parent.location.href.replace(/[#?].*$/, "");
 
-    // Track this navigation by sessionId
+    // Track this navigation by sessionId — checkTtsData() uses it on load
     ttsNavSid = sid;
-    ttsLoaded = false;
-    ttsLoadedSid = 0;
 
-    // Set state immediately — Python will write audio to sessionStorage
+    // Set state immediately — checkTtsData() will play the audio
     setVoiceState("speaking");
 
     // Navigate parent to TTS URL (same-origin, triggers Python rerun)
     window.parent.location.replace(ttsUrl);
-
-    // Poll for sessionStorage data (written by Python before iframe loads)
-    // Up to 25 polls × 200ms = 5s timeout
-    ttsNavSidCheck = setTimeout(function poll() {
-        checkTtsLoaded();
-        if (!ttsLoaded && ttsNavSid === sid &&
-            sessionActive && sessionId === sid &&
-            ttsNavSidCheck !== null) {
-            // Haven't timed out yet and session still active
-            // checkTtsLoaded schedules the next poll itself
-        }
-    }, 200);
 
     return true;
 }
@@ -3624,6 +3586,11 @@ window.onload = function() {
     // Set crop display
     updateCropDisplay();
 
+    // Check whether Python left TTS audio data in window.__TTS_DATA__
+    // (injected by _handle_tts_endpoint after a TTS navigation).
+    // Runs synchronously so the audio plays as soon as the page loads.
+    checkTtsData();
+
     // Set initial TALK button
     talkLabel.textContent    = T("talk");
     talkSublabel.textContent = T("tap_talk_to_speak");
@@ -3690,13 +3657,12 @@ def _handle_tts_endpoint(html: str) -> str:
     """
     When the Streamlit page URL carries TTS query params (set by the
     Anjaneya iframe via window.parent.location), fetch the audio from
-    Google Translate TTS and embed a sessionStorage write into the
-    response HTML.
+    Google Translate TTS and embed it directly as a JavaScript variable
+    in the response HTML.
 
-    The iframe's srcdoc is same-origin with the parent page, so
-    window.parent.sessionStorage is shared.  The injected script runs
-    synchronously BEFORE the iframe re-mounts, guaranteeing the
-    sessionStorage write is visible to the next iframe load.
+    The iframe's srcdoc runs the same Streamlit page after navigation,
+    so window.__TTS_DATA__ is readable synchronously without any
+    cross-origin sessionStorage hacks.
 
     Query params (injected into window.parent.location by the iframe):
       _tts_text  — URL-encoded text to synthesise
@@ -3716,18 +3682,16 @@ def _handle_tts_endpoint(html: str) -> str:
     audio_bytes = _fetch_online_tts(tts_text, tts_lang)
     if audio_bytes:
         b64 = base64.b64encode(audio_bytes).decode("ascii")
-        # Inject a script that writes the audio to sessionStorage
-        # before the iframe re-mounts.  Key includes session ID so
-        # stale audio from previous interactions is isolated.
-        storage_script = (
+        # Inject TTS data as a global JS variable — iframe reads it
+        # synchronously on page load.  Session ID in the payload guards
+        # against stale audio from previous interactions.
+        tts_marker = (
             f'<script>'
-            f'window.parent.sessionStorage.setItem("TTS_{tts_sid}", '
-            f'JSON.stringify({{audio:"{b64}",lang:"{tts_lang}",sid:"{tts_sid}"}}));'
-            f'window.parent.sessionStorage.setItem("TTS_LOADED","{tts_sid}");'
+            f'window.__TTS_DATA__ = {{"audio":"{b64}","lang":"{tts_lang}","sid":"{tts_sid}"}};'
             f'</script>'
         )
-        # Inject just before </head> so it runs before the iframe re-mounts
-        html = html.replace("</head>", storage_script + "</head>", 1)
+        # Inject just before </head> so it is available when the page runs
+        html = html.replace("</head>", tts_marker + "</head>", 1)
     return html
 
 

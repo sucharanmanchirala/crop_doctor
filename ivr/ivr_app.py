@@ -3,6 +3,8 @@ import streamlit.components.v1 as components
 import json
 import os
 import sys
+import base64
+import urllib.parse
 
 # Add parent directory to path so we can import language.py
 BASE_DIR = os.path.dirname(
@@ -2473,7 +2475,16 @@ function findVoice(langCode) {
 }
 
 // ── Online TTS Audio Element ──────────────────────────
+// components.html uses srcdoc — window.location.href === "about:blank"
+// so we cannot fetch from it.  Instead we navigate window.parent.location
+// (same-origin Streamlit page URL) which triggers a Python rerun.
+// Python writes audio to sessionStorage; the next iframe load reads it.
 let ttsAudio = null;
+let ttsNavSid = 0;          // sessionId that started the last navigation
+let ttsLoaded = false;       // true when sessionStorage audio is ready
+let ttsLoadedSid = 0;       // sid of the loaded audio
+let ttsNavSidCheck = null;  // setTimeout handle for the polling loop
+let originalPageUrl = "";    // saved pre-navigation URL for returning
 
 function cancelOnlineTTS() {
     if (ttsAudio) {
@@ -2481,17 +2492,106 @@ function cancelOnlineTTS() {
         ttsAudio.src = "";
         ttsAudio = null;
     }
+    // Clear pending navigation check
+    if (ttsNavSidCheck !== null) {
+        clearTimeout(ttsNavSidCheck);
+        ttsNavSidCheck = null;
+    }
+    ttsLoaded = false;
+    ttsLoadedSid = 0;
+}
+
+// Called when the iframe's srcdoc finishes loading.
+// Checks whether the parent wrote TTS data for our session.
+function checkTtsLoaded() {
+    const sid = ttsNavSid;
+    if (sid !== sessionId || !sessionActive) {
+        ttsLoaded = false;
+        return;
+    }
+    try {
+        const loadedSid = window.parent.sessionStorage.getItem("TTS_LOADED");
+        if (loadedSid && String(loadedSid) === String(sid)) {
+            const raw = window.parent.sessionStorage.getItem("TTS_" + sid);
+            if (raw) {
+                let data;
+                try { data = JSON.parse(raw); } catch(e) { data = null; }
+                if (data && String(data.sid) === String(sid)) {
+                    // Valid audio for this session — decode and play
+                    ttsLoaded = true;
+                    ttsLoadedSid = sid;
+                    window.parent.sessionStorage.removeItem("TTS_" + sid);
+                    window.parent.sessionStorage.removeItem("TTS_LOADED");
+                    playOnlineAudio(data.audio, sid);
+                    return;
+                }
+            }
+        }
+    } catch(e) {
+        // sessionStorage not accessible (cross-origin) — ignore
+    }
+    // Not loaded yet — check again in 200ms (max 25 attempts = 5s)
+    ttsNavSidCheck = setTimeout(function() { checkTtsLoaded(); }, 200);
+}
+
+function playOnlineAudio(b64Audio, sid) {
+    if (sid !== sessionId || !sessionActive) return;
+    try {
+        const binary = atob(b64Audio);
+        const bytes  = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) {
+            bytes[i] = binary.charCodeAt(i);
+        }
+        const blob  = new Blob([bytes], { type: "audio/mpeg" });
+        const audioUrl = URL.createObjectURL(blob);
+        const audio = new Audio(audioUrl);
+        ttsAudio = audio;
+        setVoiceState("speaking");
+        audio.onended = function() {
+            if (sid !== sessionId || !sessionActive) return;
+            URL.revokeObjectURL(audioUrl);
+            ttsAudio = null;
+            // Return to parent page after audio ends
+            if (window.parent.location.href !== originalPageUrl) {
+                window.parent.location.replace(originalPageUrl);
+            }
+            setVoiceState("idle");
+        };
+        audio.onerror = function() {
+            if (sid !== sessionId || !sessionActive) return;
+            URL.revokeObjectURL(audioUrl);
+            ttsAudio = null;
+            if (window.parent.location.href !== originalPageUrl) {
+                window.parent.location.replace(originalPageUrl);
+            }
+            setVoiceState("idle");
+        };
+        audio.play().catch(function() {
+            if (sid !== sessionId || !sessionActive) return;
+            URL.revokeObjectURL(audioUrl);
+            ttsAudio = null;
+            if (window.parent.location.href !== originalPageUrl) {
+                window.parent.location.replace(originalPageUrl);
+            }
+            setVoiceState("idle");
+        });
+    } catch(e) {
+        if (sid !== sessionId || !sessionActive) return;
+        if (window.parent.location.href !== originalPageUrl) {
+            window.parent.location.replace(originalPageUrl);
+        }
+        setVoiceState("idle");
+    }
 }
 
 function speak(text) {
     if (!text) return false;
     const sid = sessionId;
 
-    // ── Try browser speechSynthesis first ────────────────
+    // ── Try browser speechSynthesis first (en, hi) ────────
     if (speechSynAvail) {
         const voice = findVoice(language);
         if (voice) {
-            // Found a browser voice — use it (en, hi)
             window.speechSynthesis.cancel();
             cancelOnlineTTS();
 
@@ -2522,66 +2622,52 @@ function speak(text) {
         }
     }
 
-    // ── No browser voice (te, mr) — use Web Speech API ───
-    // Google Translate's internal TTS endpoint — free, no API key.
-    // Works in Chromium browsers. Requires internet connection.
-    const langMap = { "te": "te-IN", "mr": "mr-IN" };
-    const ttsLang = langMap[language];
-    if (!ttsLang) {
-        // Unknown language — give up gracefully
+    // ── No browser voice (te, mr) — navigate parent for TTS ─
+    // components.html iframe is srcdoc (about:blank).  We navigate
+    // window.parent.location to a TTS URL, triggering a Python rerun.
+    // Python writes base64 audio to sessionStorage; we poll and play.
+    if (language !== "te" && language !== "mr") {
         return false;
     }
 
-    // Cancel any ongoing audio or speech
-    if (speechSynAvail) window.speechSynthesis.cancel();
     cancelOnlineTTS();
 
-    // Google Translate TTS endpoint
     const encodedText = encodeURIComponent(text);
+    const baseUrl = window.parent.location.href.replace(/[#?].*$/, "");
     const ttsUrl = (
-        "https://translate.google.com/translate_tts" +
-        "?ie=UTF-8" +
-        "&q=" + encodedText +
-        "&tl=" + ttsLang +
-        "&client=tw-oca"
+        baseUrl
+        + "?_tts_text=" + encodedText
+        + "&_tts_lang=" + language
+        + "&_tts_sid=" + sid
     );
 
-    try {
-        const audio = new Audio();
-        ttsAudio = audio;
+    // Remember where we need to return to
+    originalPageUrl = window.parent.location.href.replace(/[#?].*$/, "");
 
-        audio.src = ttsUrl;
-        audio.preload = "none";
+    // Track this navigation by sessionId
+    ttsNavSid = sid;
+    ttsLoaded = false;
+    ttsLoadedSid = 0;
 
-        audio.onplay = function() {
-            if (sid !== sessionId || !sessionActive) {
-                audio.pause();
-                return;
-            }
-            setVoiceState("speaking");
-        };
+    // Set state immediately — Python will write audio to sessionStorage
+    setVoiceState("speaking");
 
-        audio.onended = function() {
-            if (sid !== sessionId || !sessionActive) return;
-            setVoiceState("idle");
-        };
+    // Navigate parent to TTS URL (same-origin, triggers Python rerun)
+    window.parent.location.replace(ttsUrl);
 
-        audio.onerror = function() {
-            if (sid !== sessionId || !sessionActive) return;
-            setVoiceState("idle");
-        };
+    // Poll for sessionStorage data (written by Python before iframe loads)
+    // Up to 25 polls × 200ms = 5s timeout
+    ttsNavSidCheck = setTimeout(function poll() {
+        checkTtsLoaded();
+        if (!ttsLoaded && ttsNavSid === sid &&
+            sessionActive && sessionId === sid &&
+            ttsNavSidCheck !== null) {
+            // Haven't timed out yet and session still active
+            // checkTtsLoaded schedules the next poll itself
+        }
+    }, 200);
 
-        audio.play().catch(function() {
-            if (sid !== sessionId || !sessionActive) return;
-            setVoiceState("idle");
-        });
-
-        return true;
-    } catch(e) {
-        if (sid !== sessionId || !sessionActive) return;
-        setVoiceState("idle");
-        return false;
-    }
+    return true;
 }
 
 
@@ -3351,6 +3437,13 @@ function endCall() {
     }
     cancelOnlineTTS();
 
+    // If a TTS navigation is in progress, return to the original page
+    if (originalPageUrl && window.parent.location.href !== originalPageUrl) {
+        try {
+            window.parent.location.replace(originalPageUrl);
+        } catch(e) {}
+    }
+
     if (recognition) {
         try { if (listening) recognition.stop(); } catch(e) {}
     }
@@ -3451,6 +3544,7 @@ function restartFromEnded() {
     language      = "en";
     listening     = false;
     resultSeen    = false;
+    cancelOnlineTTS();
 
     // Reset language button highlights (mini-bar)
     Object.keys(langMiniBtns).forEach(function(k) {
@@ -3544,6 +3638,97 @@ window.onload = function() {
 
 </html>
 """
+
+
+# ============================================================
+# ONLINE TTS — SERVER-SIDE GOOGLE TRANSLATE TTS
+# Browser cannot call translate.google.com due to CORS.
+# Python backend fetches audio and embeds it as a base64
+# data-URI so the iframe can play it without CORS issues.
+# ============================================================
+
+_TTS_LANG_MAP = {
+    "te": "te-IN",
+    "mr": "mr-IN",
+}
+
+
+def _fetch_online_tts(text: str, lang: str) -> bytes | None:
+    """
+    Fetch MP3 audio from Google Translate TTS for the given text
+    and language code.  Returns raw MP3 bytes, or None on failure.
+    """
+    if not text or lang not in _TTS_LANG_MAP:
+        return None
+    tl = _TTS_LANG_MAP[lang]
+    params = {
+        "ie": "UTF-8",
+        "q": text,
+        "tl": tl,
+        "client": "tw-oca",
+    }
+    try:
+        r = requests.get(
+            "https://translate.google.com/translate_tts",
+            params=params,
+            timeout=10,
+            headers={
+                "User-Agent": (
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                    "AppleWebKit/537.36"
+                )
+            },
+        )
+        if r.status_code == 200 and r.content:
+            return r.content
+    except Exception:
+        pass
+    return None
+
+
+def _handle_tts_endpoint(html: str) -> str:
+    """
+    When the Streamlit page URL carries TTS query params (set by the
+    Anjaneya iframe via window.parent.location), fetch the audio from
+    Google Translate TTS and embed a sessionStorage write into the
+    response HTML.
+
+    The iframe's srcdoc is same-origin with the parent page, so
+    window.parent.sessionStorage is shared.  The injected script runs
+    synchronously BEFORE the iframe re-mounts, guaranteeing the
+    sessionStorage write is visible to the next iframe load.
+
+    Query params (injected into window.parent.location by the iframe):
+      _tts_text  — URL-encoded text to synthesise
+      _tts_lang  — language code (te / mr)
+      _tts_sid   — session ID for stale-request guard
+    """
+    try:
+        tts_text = st.query_params.get("_tts_text", "")
+        tts_lang = st.query_params.get("_tts_lang", "")
+        tts_sid  = st.query_params.get("_tts_sid",  "")
+    except Exception:
+        return html
+
+    if not tts_text or tts_lang not in _TTS_LANG_MAP:
+        return html
+
+    audio_bytes = _fetch_online_tts(tts_text, tts_lang)
+    if audio_bytes:
+        b64 = base64.b64encode(audio_bytes).decode("ascii")
+        # Inject a script that writes the audio to sessionStorage
+        # before the iframe re-mounts.  Key includes session ID so
+        # stale audio from previous interactions is isolated.
+        storage_script = (
+            f'<script>'
+            f'window.parent.sessionStorage.setItem("TTS_{tts_sid}", '
+            f'JSON.stringify({{audio:"{b64}",lang:"{tts_lang}",sid:"{tts_sid}"}}));'
+            f'window.parent.sessionStorage.setItem("TTS_LOADED","{tts_sid}");'
+            f'</script>'
+        )
+        # Inject just before </head> so it runs before the iframe re-mounts
+        html = html.replace("</head>", storage_script + "</head>", 1)
+    return html
 
 
 # ============================================================
@@ -3720,4 +3905,6 @@ def render_anjaneya_voice():
         st.metric(t("monitoring_records_metric"), len(monitoring_history))
 
     # ── IVR HTML ───────────────────────────────────────
+    # Pass TTS-marked HTML if a TTS fetch request is in flight.
+    html = _handle_tts_endpoint(html)
     components.html(html, height=900, scrolling=False)

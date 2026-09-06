@@ -707,6 +707,12 @@ _EXTRA_TRANSLATIONS = {
         "hi": "इस ब्रॉउज़र में वॉइस इंस्टॉल नहीं है।",
         "mr": "या ब्रॉझरमध्ये व्हॉइस इंस्टॉल नाही."
     },
+    "online_tts_notice": {
+        "en": "🌐 Telugu & Marathi use online TTS — internet required",
+        "te": "🌐 ఆన్‌లైన్ TTS — ఇంటర్నెట్ అవసరం",
+        "hi": "🌐 तेलुगु और मराठी के लिए ऑनलाइन TTS — इंटरनेट आवश्यक",
+        "mr": "🌐 तेलुगू आणि मराठीसाठी ऑनलाइन TTS — इंटरनेट आवश्यक"
+    },
     "checking_language_voices": {
         "en": "Checking language voices...",
         "te": "భాష వాయిస్‌లను తనిఖీ చేస్తోంది...",
@@ -2466,42 +2472,116 @@ function findVoice(langCode) {
     return base || null;
 }
 
+// ── Online TTS Audio Element ──────────────────────────
+let ttsAudio = null;
+
+function cancelOnlineTTS() {
+    if (ttsAudio) {
+        ttsAudio.pause();
+        ttsAudio.src = "";
+        ttsAudio = null;
+    }
+}
+
 function speak(text) {
-    if (!speechSynAvail || !text) return false;
-    const voice = findVoice(language);
-    if (!voice) {
-        updateVoiceStatus(true);
+    if (!text) return false;
+    const sid = sessionId;
+
+    // ── Try browser speechSynthesis first ────────────────
+    if (speechSynAvail) {
+        const voice = findVoice(language);
+        if (voice) {
+            // Found a browser voice — use it (en, hi)
+            window.speechSynthesis.cancel();
+            cancelOnlineTTS();
+
+            const utt = new SpeechSynthesisUtterance(text);
+            utt.voice  = voice;
+            utt.lang    = voice.lang;
+            utt.rate    = 0.88;
+            utt.pitch   = 1.0;
+            utt.volume  = 1.0;
+
+            utt.onstart = function() {
+                if (sid !== sessionId || !sessionActive) return;
+                setVoiceState("speaking");
+            };
+
+            utt.onend = function() {
+                if (sid !== sessionId || !sessionActive) return;
+                setVoiceState("idle");
+            };
+
+            utt.onerror = function() {
+                if (sid !== sessionId || !sessionActive) return;
+                setVoiceState("idle");
+            };
+
+            window.speechSynthesis.speak(utt);
+            return true;
+        }
+    }
+
+    // ── No browser voice (te, mr) — use Web Speech API ───
+    // Google Translate's internal TTS endpoint — free, no API key.
+    // Works in Chromium browsers. Requires internet connection.
+    const langMap = { "te": "te-IN", "mr": "mr-IN" };
+    const ttsLang = langMap[language];
+    if (!ttsLang) {
+        // Unknown language — give up gracefully
         return false;
     }
 
-    const sid = sessionId;
-    window.speechSynthesis.cancel();
+    // Cancel any ongoing audio or speech
+    if (speechSynAvail) window.speechSynthesis.cancel();
+    cancelOnlineTTS();
 
-    const utt = new SpeechSynthesisUtterance(text);
-    utt.voice  = voice;
-    utt.lang    = voice.lang;
-    utt.rate    = 0.88;
-    utt.pitch   = 1.0;
-    utt.volume  = 1.0;
+    // Google Translate TTS endpoint
+    const encodedText = encodeURIComponent(text);
+    const ttsUrl = (
+        "https://translate.google.com/translate_tts" +
+        "?ie=UTF-8" +
+        "&q=" + encodedText +
+        "&tl=" + ttsLang +
+        "&client=tw-oca"
+    );
 
-    utt.onstart = function() {
+    try {
+        const audio = new Audio();
+        ttsAudio = audio;
+
+        audio.src = ttsUrl;
+        audio.preload = "none";
+
+        audio.onplay = function() {
+            if (sid !== sessionId || !sessionActive) {
+                audio.pause();
+                return;
+            }
+            setVoiceState("speaking");
+        };
+
+        audio.onended = function() {
+            if (sid !== sessionId || !sessionActive) return;
+            setVoiceState("idle");
+        };
+
+        audio.onerror = function() {
+            if (sid !== sessionId || !sessionActive) return;
+            setVoiceState("idle");
+        };
+
+        audio.play().catch(function() {
+            if (sid !== sessionId || !sessionActive) return;
+            setVoiceState("idle");
+        });
+
+        return true;
+    } catch(e) {
         if (sid !== sessionId || !sessionActive) return;
-        setVoiceState("speaking");
-    };
-
-    utt.onend = function() {
-        if (sid !== sessionId || !sessionActive) return;
-        // After speaking, return to idle — wait for user to tap TALK
         setVoiceState("idle");
-    };
-
-    utt.onerror = function() {
-        if (sid !== sessionId || !sessionActive) return;
-        setVoiceState("idle");
-    };
-
-    window.speechSynthesis.speak(utt);
-    return true;
+        return false;
+    }
 }
 
 
@@ -2514,11 +2594,26 @@ function updateVoiceStatus(noVoice) {
         voiceStatusLine.textContent = T("voice_not_installed");
         return;
     }
+    // Telugu and Marathi use online TTS (no browser voice)
+    if (language === "te" || language === "mr") {
+        voiceStatusLine.textContent = "🌐 " + LANGUAGES[language].name + " — Online TTS (Internet required)";
+        return;
+    }
     const v = findVoice(language);
     if (v) {
         voiceStatusLine.textContent = "🔊 " + LANGUAGES[language].name + " — " + v.name + " (" + v.lang + ")";
     } else {
         voiceStatusLine.textContent = "⚠️ " + LANGUAGES[language].name + " — " + T("voice_not_installed");
+    }
+}
+
+function updateFooterNotice() {
+    const notice3 = document.querySelector(".footer .footer-note2");
+    if (!notice3) return;
+    if (language === "te" || language === "mr") {
+        notice3.textContent = T("online_tts_notice");
+    } else {
+        notice3.textContent = T("voice_unavailable_message");
     }
 }
 
@@ -2646,6 +2741,9 @@ function selectLang(code) {
     // Update voice status line
     loadVoices();
     updateVoiceStatus();
+
+    // Update footer notice for online TTS languages
+    updateFooterNotice();
 
     // Update voice-command examples on the opening screen
     updateCommandExamples();
@@ -2822,6 +2920,8 @@ function startListening() {
 
     // Don't start if speech synthesis is playing
     if (window.speechSynthesis && window.speechSynthesis.speaking) return;
+    // Don't start if online TTS is playing
+    if (ttsAudio && !ttsAudio.paused) return;
 
     const locales = LANGUAGE_LOCALES[language] || ["en-IN"];
     recognition.lang = locales[0];
@@ -3221,8 +3321,9 @@ function onTalkTap() {
     if (!sessionActive) return;
 
     if (voiceState === "idle") {
-        // Cancel any ongoing speech
+        // Cancel any ongoing speech (both browser and online TTS)
         if (window.speechSynthesis) window.speechSynthesis.cancel();
+        cancelOnlineTTS();
         // Start listening
         startListening();
     }
@@ -3248,6 +3349,7 @@ function endCall() {
     if (window.speechSynthesis) {
         window.speechSynthesis.cancel();
     }
+    cancelOnlineTTS();
 
     if (recognition) {
         try { if (listening) recognition.stop(); } catch(e) {}
@@ -3394,6 +3496,7 @@ function restartFromEnded() {
     setupRecognition();
     loadVoices();
     updateVoiceStatus();
+    updateFooterNotice();
 }
 
 
@@ -3420,6 +3523,9 @@ window.onload = function() {
 
     // Set initial voice status
     updateVoiceStatus();
+
+    // Set initial footer notice
+    updateFooterNotice();
 
     // Set crop display
     updateCropDisplay();

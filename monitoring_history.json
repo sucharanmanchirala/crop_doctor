@@ -82,5 +82,26 @@
         "disease": "Bacterial Leaf Blight",
         "confidence": 98.72,
         "crop_id": null
+    },
+    {
+        "date": "2026-09-07 15:05",
+        "crop": "Cotton",
+        "disease": "Fusarium Wilt",
+        "confidence": 99.06,
+        "crop_id": null
+    },
+    {
+        "date": "2026-09-07 15:06",
+        "crop": "Wheat",
+        "disease": "Yellow Rust",
+        "confidence": 65.57,
+        "crop_id": null
+    },
+    {
+        "date": "2026-09-07 15:22",
+        "crop": "Corn",
+        "disease": "Healthy",
+        "confidence": 100.0,
+        "crop_id": null
     }
 ]

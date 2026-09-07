@@ -477,6 +477,235 @@ header[data-testid="stHeader"] {background: transparent;}
     border-top: 1px solid #e6efe6;
 }
 
+/* =======================================================
+   WIDGET OVERRIDES — force light theme regardless of OS
+   Explicit colours prevent browser/OS dark mode from
+   inverting Streamlit's default widget styling.
+   ======================================================= */
+
+/* --- Buttons (general) --- */
+.stButton>button {
+    background-color: #ffffff !important;
+    color: #1b3a1f !important;
+    border: 1px solid #e6efe6 !important;
+    border-radius: 8px !important;
+}
+
+.stButton>button:hover {
+    background-color: #f1f8e9 !important;
+    color: #1b3a1f !important;
+}
+
+.stButton>button:active {
+    background-color: #e8f5e9 !important;
+    color: #1b3a1f !important;
+}
+
+/* --- Selectbox --- */
+.stSelectbox>div>div {
+    background-color: #ffffff !important;
+    color: #1b3a1f !important;
+}
+
+.stSelectbox div[role="listbox"] {
+    background-color: #ffffff !important;
+    color: #1b3a1f !important;
+}
+
+/* --- Text Input --- */
+.stTextInput>div>div>input {
+    background-color: #ffffff !important;
+    color: #1b3a1f !important;
+}
+
+/* --- Text Area --- */
+.stTextArea>div>div>textarea {
+    background-color: #ffffff !important;
+    color: #1b3a1f !important;
+}
+
+/* --- Number Input --- */
+.stNumberInput>div>div>input {
+    background-color: #ffffff !important;
+    color: #1b3a1f !important;
+}
+
+/* --- Date Input --- */
+.stDateInput>div>div>input {
+    background-color: #ffffff !important;
+    color: #1b3a1f !important;
+}
+
+/* --- Time Input --- */
+.stTimeInput>div>div>input {
+    background-color: #ffffff !important;
+    color: #1b3a1f !important;
+}
+
+/* --- File Uploader --- */
+.stFileUploader {
+    background-color: #ffffff !important;
+    color: #1b3a1f !important;
+}
+
+.stFileUploader div[data-testid="stFileUploaderDropzone"] {
+    background-color: #f7faf6 !important;
+    border: 1px solid #e6efe6 !important;
+    color: #1b3a1f !important;
+}
+
+/* --- Expander --- */
+.stExpander>div {
+    background-color: #ffffff !important;
+    color: #1b3a1f !important;
+}
+
+/* --- Tabs --- */
+.stTabs>div>div {
+    background-color: #ffffff !important;
+}
+
+.stTabs div[role="tab"] {
+    color: #1b3a1f !important;
+}
+
+.stTabs div[aria-selected="true"] {
+    color: #2e7d32 !important;
+    border-bottom: 2px solid #2e7d32 !important;
+}
+
+/* --- Sidebar --- */
+section[data-testid="stSidebar"] {
+    background-color: #ffffff !important;
+    color: #1b3a1f !important;
+}
+
+section[data-testid="stSidebar"] div {
+    color: #1b3a1f !important;
+}
+
+section[data-testid="stSidebar"] a {
+    color: #2e7d32 !important;
+}
+
+/* --- Metric --- */
+.stMetric>label {
+    color: #6b7e6b !important;
+}
+
+.stMetric>div>div {
+    color: #1b3a1f !important;
+}
+
+/* --- Alerts (Info, Success, Warning, Error) --- */
+.stAlert {
+    background-color: #ffffff !important;
+    color: #1b3a1f !important;
+}
+
+.stInfo {
+    background-color: #ffffff !important;
+    color: #1b3a1f !important;
+}
+
+.stSuccess {
+    background-color: #ffffff !important;
+    color: #1b3a1f !important;
+}
+
+.stWarning {
+    background-color: #ffffff !important;
+    color: #1b3a1f !important;
+}
+
+.stError {
+    background-color: #ffffff !important;
+    color: #1b3a1f !important;
+}
+
+/* --- Caption --- */
+.stCaption {
+    color: #6b7e6b !important;
+}
+
+/* --- Markdown --- */
+.stMarkdown {
+    color: #1b3a1f !important;
+}
+
+.stMarkdown a {
+    color: #2e7d32 !important;
+}
+
+/* --- Table --- */
+.stTable {
+    color: #1b3a1f !important;
+    background-color: #ffffff !important;
+}
+
+.stTable th {
+    background-color: #e8f5e9 !important;
+    color: #1b3a1f !important;
+}
+
+.stTable td {
+    background-color: #ffffff !important;
+    color: #1b3a1f !important;
+}
+
+/* --- Checkbox --- */
+.stCheckbox>div>label {
+    color: #1b3a1f !important;
+}
+
+/* --- Radio --- */
+.stRadio>div>label {
+    color: #1b3a1f !important;
+}
+
+/* --- Multiselect --- */
+.stMultiSelect>div>div {
+    background-color: #ffffff !important;
+    color: #1b3a1f !important;
+}
+
+/* --- Slider --- */
+.stSlider>div>div {
+    color: #2e7d32 !important;
+}
+
+/* --- Progress --- */
+.stProgress>div>div>div {
+    background-color: #2e7d32 !important;
+}
+
+/* --- Spinner --- */
+.stSpinner>div {
+    border-top-color: #2e7d32 !important;
+}
+
+/* --- Link --- */
+a {
+    color: #2e7d32 !important;
+}
+
+/* --- Horizontal Rule --- */
+hr {
+    border-color: #e6efe6 !important;
+}
+
+/* --- Code --- */
+code {
+    background-color: #f0f4f0 !important;
+    color: #1b3a1f !important;
+}
+
+/* --- Pre --- */
+pre {
+    background-color: #f0f4f0 !important;
+    color: #1b3a1f !important;
+}
+
 </style>
 """,
     unsafe_allow_html=True,
